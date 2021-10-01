@@ -2,8 +2,11 @@
 //
 
 #include <iostream>
+#include "Player.h"
+#include "Monster.h"
 
 using namespace std;
+
 
 // TODO: make array size variable (use pointers to initialise dymanic size arrays)
 void show_grid(char arr[10][10]) {
@@ -13,12 +16,13 @@ void show_grid(char arr[10][10]) {
         }
         cout << endl;
     }
+    return;
 }
 
-char move(char pos[2], int x_displacement, int y_displacement) {
-    return { pos[0] + x_displacement , pos[1] + y_displacement };
+void add_item(Character c, char (*g)[10][10]) {
+    (*g)[c.position[0]][c.position[1]] = c.logo;
+    return;
 }
-
 
 int main()
 {
@@ -29,13 +33,14 @@ int main()
             grid[i][j] = 'x';
         }
     }
+
     // add monster
-    int monster[] = {5, 5};
-    grid[monster[0]][monster[1]] = 'M';
+    Monster monster(5, 5);
+    add_item(monster, &grid);
 
     // add player
-    int player[] = { 0, 0 };
-    grid[player[0]][player[1]] = 'P';
+    Player player(0, 0);
+    add_item(player, &grid);
 
     show_grid(grid);
 }
