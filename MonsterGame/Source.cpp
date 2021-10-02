@@ -7,6 +7,7 @@
 
 #include "Player.h"
 #include "Monster.h"
+#include "Item.h"
 
 using namespace std;
 
@@ -42,8 +43,23 @@ int main()
 	Player player(0, 0);
 	add_item(player, &grid);
 
+	// add traps
+	Item traps[5];
+	for (int i = 0; i < 5; i++) {
+		int r, c;
+		do {
+			r = rand() % 10;
+			c = rand() % 10;
+		} while (grid[r][c] != '#');
+		// TODO: make this part cleaner (ideally remove defaults from Item constructor)
+		Item t(c, r, 'T');
+		traps[i] = t;
+		grid[r][c] = traps[i].logo;
+	}
+
 	bool gameOver = false;
-	bool isKeyHeldDown = false;
+	bool keyHeldDown = false;
+	bool monsterAwake = false;
 
 	while (!gameOver) {
 		// slow down loop
@@ -51,33 +67,46 @@ int main()
 		
 		// ---Keyboard input---
 		// W key
-		if (GetAsyncKeyState(0x57) < 0 && !isKeyHeldDown) {
+		if (GetAsyncKeyState(0x57) < 0 && !keyHeldDown) {
 			move_item(&player, -1, 0, &grid);
-			isKeyHeldDown = true;
+			keyHeldDown = true;
 		}
 		// A key
-		else if (GetAsyncKeyState(0x41) < 0 && !isKeyHeldDown) {
+		else if (GetAsyncKeyState(0x41) < 0 && !keyHeldDown) {
 			move_item(&player, 0, -1, &grid);
-			isKeyHeldDown = true;
+			keyHeldDown = true;
 		}
 		// S key
-		else if (GetAsyncKeyState(0x53) < 0 && !isKeyHeldDown) {
+		else if (GetAsyncKeyState(0x53) < 0 && !keyHeldDown) {
 			move_item(&player, 1, 0, &grid);
-			isKeyHeldDown = true;
+			keyHeldDown = true;
 		}
 		// D key
-		else if (GetAsyncKeyState(0x44) < 0 && !isKeyHeldDown) {
+		else if (GetAsyncKeyState(0x44) < 0 && !keyHeldDown) {
 			move_item(&player, 0, 1, &grid);
-			isKeyHeldDown = true;
+			keyHeldDown = true;
 		}
-		if (!(GetAsyncKeyState(0x57) < 0 || GetAsyncKeyState(0x41) < 0 || GetAsyncKeyState(0x53) < 0 || GetAsyncKeyState(0x44) < 0) && isKeyHeldDown)
-			isKeyHeldDown = false;
+		if (!(GetAsyncKeyState(0x57) < 0 || GetAsyncKeyState(0x41) < 0 || GetAsyncKeyState(0x53) < 0 || GetAsyncKeyState(0x44) < 0) && keyHeldDown)
+			keyHeldDown = false;
+
+		// detect collision with monster
+		if (player.position[0] == monster.position[0] && player.position[1] == monster.position[1]) {
+			gameOver = true;
+		}
+		// detect collision with traps 
+		for (Item trap : traps) {
+			if (player.position[0] == trap.position[0] && player.position[1] == trap.position[1]) {
+				monsterAwake = true;
+				// TODO: delete all traps from memory and delete the traps array from memory. Then stop running this loop forever
+				// TODO: make monster awake
+			}
+		}
 
 
 		// populate the screen char array with the grid
 		for (int r = 0; r < 10; r++) {
 			for (int c = 0; c < 10; c++) {
-				screen[(r + 2) * bufferWidth + (c * 2 + 4)] = grid[r][c];
+				screen[(c + 2) * bufferWidth + (r * 2 + 4)] = grid[c][r];
 			}
 		}
 		// Display Frame
@@ -86,7 +115,7 @@ int main()
 	}
 
 	CloseHandle(console);
-	cout << "\nGAME OVER\n";
+	std::cout << "\nGAME OVER\n";
 	return 0;
 }
 
