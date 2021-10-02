@@ -42,36 +42,37 @@ int main()
 	Player player(0, 0);
 	add_item(player, &grid);
 
-	bool buttonLatch = false; // slows down movements if a button is held down
 	bool gameOver = false;
+	bool isKeyHeldDown = false;
 
 	while (!gameOver) {
 		// slow down loop
 		this_thread::sleep_for(50ms);
+		
+		// ---Keyboard input---
+		// W key
+		if (GetAsyncKeyState(0x57) < 0 && !isKeyHeldDown) {
+			move_item(&player, -1, 0, &grid);
+			isKeyHeldDown = true;
+		}
+		// A key
+		else if (GetAsyncKeyState(0x41) < 0 && !isKeyHeldDown) {
+			move_item(&player, 0, -1, &grid);
+			isKeyHeldDown = true;
+		}
+		// S key
+		else if (GetAsyncKeyState(0x53) < 0 && !isKeyHeldDown) {
+			move_item(&player, 1, 0, &grid);
+			isKeyHeldDown = true;
+		}
+		// D key
+		else if (GetAsyncKeyState(0x44) < 0 && !isKeyHeldDown) {
+			move_item(&player, 0, 1, &grid);
+			isKeyHeldDown = true;
+		}
+		if (!(GetAsyncKeyState(0x57) < 0 || GetAsyncKeyState(0x41) < 0 || GetAsyncKeyState(0x53) < 0 || GetAsyncKeyState(0x44) < 0) && isKeyHeldDown)
+			isKeyHeldDown = false;
 
-		// user input
-		if (!buttonLatch) {
-			if (GetAsyncKeyState((unsigned short)'D') & 0x8000) {
-				move_item(&player, 0, 1, &grid);
-			}
-			else if (GetAsyncKeyState((unsigned short)'S') & 0x8000) {
-				move_item(&player, 1, 0, &grid);
-			}
-			else if (GetAsyncKeyState((unsigned short)'A') & 0x8000) {
-				move_item(&player, 0, -1, &grid);
-			}
-			else if (GetAsyncKeyState((unsigned short)'W') & 0x8000) {
-				move_item(&player, -1, 0, &grid);
-			}
-			buttonLatch = true;
-			// detect collision with monster
-			if (player.position[0] == monster.position[0] && player.position[1] == monster.position[1]) {
-				gameOver = true;
-			}
-		}
-		else {
-			buttonLatch = false;
-		}
 
 		// populate the screen char array with the grid
 		for (int r = 0; r < 10; r++) {
