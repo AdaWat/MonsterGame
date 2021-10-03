@@ -11,7 +11,6 @@
 #include "Item.h"
 
 using namespace std;
-// TODO: FIX COORDINATE SYSTEM - MAKE CONSISTANT
 
 const int boardWidth = 8;
 const int numberOfTraps = 5;
@@ -60,7 +59,7 @@ int main()
 		// TODO: make this part cleaner (ideally remove defaults from Item constructor)
 		//Item t(c, r, 'T');
 		//traps[i] = t;
-		traps.push_back(std::make_unique<Item>(c, r, 'T'));
+		traps.push_back(std::make_unique<Item>(r, c, 'T'));
 		grid[r][c] = traps[i]->logo;
 	}
 
@@ -95,8 +94,9 @@ int main()
 				keyHeldDown = true;
 			}
 		}
-		else if (!(GetAsyncKeyState(0x57) < 0 || GetAsyncKeyState(0x41) < 0 || GetAsyncKeyState(0x53) < 0 || GetAsyncKeyState(0x44) < 0))
+		else if (!(GetAsyncKeyState(0x57) < 0 || GetAsyncKeyState(0x41) < 0 || GetAsyncKeyState(0x53) < 0 || GetAsyncKeyState(0x44) < 0)) {
 			keyHeldDown = false;
+		}
 
 		// detect collision with monster
 		if (player.position[0] == monster.position[0] && player.position[1] == monster.position[1]) {
@@ -111,7 +111,7 @@ int main()
 					traps.clear();
 					monsterAwake = true;
 
-					// TODO: make monster awake
+					// TODO: stop displaying the traps (b/c they have been cleared)
 				}
 			}
 		}
@@ -120,7 +120,7 @@ int main()
 		// populate the screen char array with the grid
 		for (int r = 0; r < boardWidth; r++) {
 			for (int c = 0; c < boardWidth; c++) {
-				screen[(c + 2) * bufferWidth + (r * 2 + 4)] = grid[c][r];
+				screen[(r + 2) * bufferWidth + (c * 2 + 4)] = grid[r][c];
 			}
 		}
 		// Display Frame
