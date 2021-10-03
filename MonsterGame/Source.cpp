@@ -56,9 +56,7 @@ int main()
 			r = rand() % boardWidth;
 			c = rand() % boardWidth;
 		} while (grid[r][c] != blank);
-		// TODO: make this part cleaner (ideally remove defaults from Item constructor)
-		//Item t(c, r, 'T');
-		//traps[i] = t;
+
 		traps.push_back(std::make_unique<Item>(r, c, 'T'));
 		grid[r][c] = traps[i]->logo;
 	}
@@ -95,6 +93,7 @@ int main()
 			}
 		}
 		else if (!(GetAsyncKeyState(0x57) < 0 || GetAsyncKeyState(0x41) < 0 || GetAsyncKeyState(0x53) < 0 || GetAsyncKeyState(0x44) < 0)) {
+			// if a button isn't held down, allow the player to move next loop
 			keyHeldDown = false;
 		}
 
@@ -105,14 +104,36 @@ int main()
 
 		// detect collision with traps 
 		if (!monsterAwake) {
-			for (auto &o : traps) {
+			for (std::unique_ptr<Item> &o : traps) {
 				if (player.position[0] == o->position[0] && player.position[1] == o->position[1]) {
+					// TODO: stop displaying the traps (b/c they are about to be cleared)
+					for (int r = 0; r < boardWidth; r++) {
+						for (int c = 0; c < boardWidth; c++) {
+							if (grid[r][c] == o->logo) {
+								grid[r][c] = blank;
+							}
+						}
+					}
 					// free up memory
 					traps.clear();
 					monsterAwake = true;
-
-					// TODO: stop displaying the traps (b/c they have been cleared)
 				}
+			}
+		}
+		// TODO: fix this: stop monster from moving when key held down
+		if (monsterAwake && keyHeldDown) {
+			// move monster
+			if (player.position[0] < monster.position[0]) {
+				move_item(&monster, -1, 0, &grid);
+			}
+			else if (player.position[0] > monster.position[0]) {
+				move_item(&monster, 1, 0, &grid);
+			}
+			else if (player.position[1] < monster.position[1]) {
+				move_item(&monster, 0, -1, &grid);
+			}
+			else if (player.position[1] > monster.position[1]) {
+				move_item(&monster, 0, 1, &grid);
 			}
 		}
 
