@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <Windows.h>
+#include <stdio.h>
 #include <thread>
 #include <vector>
 
@@ -12,13 +13,13 @@
 
 using namespace std;
 
-const int boardRows = 8;
-const int boardCols = 12;
+const int boardRows = 10;
+const int boardCols = 10;
+const int numberOfTraps = 10;
 
 const int bufferWidth = 80;
 const int bufferHeight = 60;
 
-const int numberOfTraps = 10;
 const char blank = L'#';
 
 void add_item(Character, char(*)[boardRows][boardCols]);
@@ -27,6 +28,7 @@ int* get_blank_cell(char(*)[boardRows][boardCols]);
 
 int main()
 {
+	std::setlocale(LC_ALL, "en_US.UTF-8");
 	// Create Screen Buffer
 	wchar_t* screen = new wchar_t[bufferWidth * bufferHeight];
 	for (int i = 0; i < bufferWidth * bufferHeight; i++) screen[i] = L' ';
@@ -173,8 +175,7 @@ int main()
 		}
 
 		// Display score
-		//TODO: draw score to buffer
-		//swprintf_s(&screen, "Score: %s", score);
+		swprintf_s(&screen[2*bufferWidth + 3*boardCols], 16, L"Score: %8d", score);
 
 		// Display Frame
 		screen[bufferWidth * bufferHeight - 1] = '\0';	// end char array so Windows knows when to stop rendering
