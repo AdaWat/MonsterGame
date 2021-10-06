@@ -13,18 +13,20 @@
 
 using namespace std;
 
-const int boardRows = 10;
-const int boardCols = 10;
+const int boardRows = 5;
+const int boardCols = 5;
 const int numberOfTraps = 10;
 
 const int bufferWidth = 80;
 const int bufferHeight = 60;
 
 const char blank = L'#';
+const bool easy = true;
 
 void add_item(Character, char(*)[boardRows][boardCols]);
 void move_item(Character(*), int, int, char(*)[boardRows][boardCols]);
 int* get_blank_cell(char(*)[boardRows][boardCols]);
+float get_dist(int, int);
 
 int main()
 {
@@ -46,11 +48,13 @@ int main()
 	}
 
 	// add monster
-	Monster monster(boardRows - 1, boardCols - 1);
+	//Monster monster(boardRows - 1, boardCols - 1);
+	Monster monster(0, 0);
 	add_item(monster, &grid);
 
 	// add player
-	Player player(0, 0);
+	Player player(boardRows - 1, boardCols - 1);
+	//Player player(0, 0);
 	add_item(player, &grid);
 
 	// add traps
@@ -142,23 +146,45 @@ int main()
 			grid[gold.position[0]][gold.position[1]] = gold.logo;	// redraw
 		}
 
+		// move monster logic
 		if (monsterAwake && monsterMove) {
-			// move monster
-			bool moveBias = rand() % 2 - 1;		// true=vertical bias  false=horizontal bias
-			int vertOffset = player.position[0] - monster.position[0];
-			int horOffset = player.position[1] - monster.position[1];
+			if (easy) {
+				bool moveBias = rand() % 2 - 1;		// true=vertical bias  false=horizontal bias
+				int vertOffset = player.position[0] - monster.position[0];
+				int horOffset = player.position[1] - monster.position[1];
 
-			if ((vertOffset < 0 && moveBias) || (vertOffset < 0 && horOffset == 0)) {
-				move_item(&monster, -1, 0, &grid);
+				if ((vertOffset < 0 && moveBias) || (vertOffset < 0 && horOffset == 0)) {
+					move_item(&monster, -1, 0, &grid);
+				}
+				else if ((vertOffset > 0 && moveBias) || (vertOffset > 0 && horOffset == 0)) {
+					move_item(&monster, 1, 0, &grid);
+				}
+				else if ((horOffset < 0 && !moveBias) || (horOffset < 0 && vertOffset == 0)) {
+					move_item(&monster, 0, -1, &grid);
+				}
+				else if ((horOffset > 0 && !moveBias) || (horOffset > 0 && vertOffset == 0)) {
+					move_item(&monster, 0, 1, &grid);
+				}
 			}
-			else if ((vertOffset > 0 && moveBias) || (vertOffset > 0 && horOffset == 0)) {
-				move_item(&monster, 1, 0, &grid);
-			}
-			else if ((horOffset < 0 && !moveBias) || (horOffset < 0 && vertOffset == 0)) {
-				move_item(&monster, 0, -1, &grid);
-			}
-			else if ((horOffset > 0 && !moveBias) || (horOffset > 0 && vertOffset == 0)) {
-				move_item(&monster, 0, 1, &grid);
+			else {
+				float upDist = abs(get_dist(player.position[0] - (monster.position[0] - 1), player.position[1] - monster.position[1]));
+				float downDist = abs(get_dist(player.position[0] - (monster.position[0] + 1), player.position[1] - monster.position[1]));
+				float leftDist = abs(get_dist(player.position[0] - monster.position[0], player.position[1] - (monster.position[1] - 1)));
+				float rightDist = abs(get_dist(player.position[0] - monster.position[0], player.position[1] - (monster.position[1] + 1)));
+				float minDist = min(upDist, min(downDist, min(leftDist, rightDist)));
+
+				if (minDist == upDist) {
+					move_item(&monster, -1, 0, &grid);
+				}
+				else if (minDist == downDist) {
+					move_item(&monster, 1, 0, &grid);
+				}
+				else if (minDist == leftDist) {
+					move_item(&monster, 0, -1, &grid);
+				}
+				else if (minDist == rightDist) {
+					move_item(&monster, 0, 1, &grid);
+				}
 			}
 		}
 		monsterMove = false;
@@ -175,7 +201,7 @@ int main()
 		}
 
 		// Display score
-		swprintf_s(&screen[2*bufferWidth + 3*boardCols], 16, L"Score: %8d", score);
+		swprintf_s(&screen[2*bufferWidth + 3*boardCols], 12, L"Score: %4d", score);
 
 		// Display Frame
 		screen[bufferWidth * bufferHeight - 1] = '\0';	// end char array so Windows knows when to stop rendering
@@ -213,4 +239,8 @@ int* get_blank_cell(char(*g)[boardRows][boardCols]) {
 		pos[1] = rand() % boardCols;
 	} while ((*g)[pos[0]][pos[1]] != blank);
 	return pos;
+}
+
+float get_dist(int x, int y) {
+	return sqrt(x*x + y*y);
 }
