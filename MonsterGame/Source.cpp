@@ -21,7 +21,7 @@ const int bufferWidth = 80;
 const int bufferHeight = 60;
 
 const char blank = L'#';
-const bool easy = true;
+bool easyMode = false;
 
 void add_item(Character, char(*)[boardRows][boardCols]);
 void move_item(Character(*), int, int, char(*)[boardRows][boardCols]);
@@ -31,6 +31,7 @@ float get_dist(int, int);
 int main()
 {
 	std::setlocale(LC_ALL, "en_US.UTF-8");
+	std::srand(std::time(nullptr));	// set seed for random numbers
 	// Create Screen Buffer
 	wchar_t* screen = new wchar_t[bufferWidth * bufferHeight];
 	for (int i = 0; i < bufferWidth * bufferHeight; i++) screen[i] = L' ';
@@ -107,8 +108,12 @@ int main()
 				keyHeldDown = true;
 				monsterMove = true;
 			}
+			else if (GetAsyncKeyState(0x51) < 0) {
+				easyMode = !easyMode;
+				keyHeldDown = true;
+			}
 		}
-		else if (!(GetAsyncKeyState(0x57) < 0 || GetAsyncKeyState(0x41) < 0 || GetAsyncKeyState(0x53) < 0 || GetAsyncKeyState(0x44) < 0)) {
+		else if (!(GetAsyncKeyState(0x57) < 0 || GetAsyncKeyState(0x41) < 0 || GetAsyncKeyState(0x53) < 0 || GetAsyncKeyState(0x44) < 0 || GetAsyncKeyState(0x51) < 0)) {
 			// if a button isn't held down, allow the player to move next loop
 			keyHeldDown = false;
 		}
@@ -148,7 +153,7 @@ int main()
 
 		// move monster logic
 		if (monsterAwake && monsterMove) {
-			if (easy) {
+			if (easyMode) {
 				bool moveBias = rand() % 2 - 1;		// true=vertical bias  false=horizontal bias
 				int vertOffset = player.position[0] - monster.position[0];
 				int horOffset = player.position[1] - monster.position[1];
@@ -201,7 +206,10 @@ int main()
 		}
 
 		// Display score
-		swprintf_s(&screen[2*bufferWidth + 3*boardCols], 12, L"Score: %4d", score);
+		swprintf(&screen[2*bufferWidth + 3*boardCols], 12, L"Score: %d", score);
+		// TODO: Display mode
+		auto m0 = easyMode ? 'easy' : 'hard';
+		swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: %s", &m0);
 
 		// Display Frame
 		screen[bufferWidth * bufferHeight - 1] = '\0';	// end char array so Windows knows when to stop rendering
