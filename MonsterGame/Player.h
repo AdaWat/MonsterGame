@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Character.h"
 class Player : public Character
 {
@@ -7,6 +7,6 @@ public:
 	{
 		position[0] = x;
 		position[1] = y;
-		logo = 'P';
+		logo = L'☺';
 	}
 };

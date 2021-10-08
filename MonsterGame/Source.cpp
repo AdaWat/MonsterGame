@@ -13,24 +13,24 @@
 
 using namespace std;
 
-const int boardRows = 5;
-const int boardCols = 5;
-const int numberOfTraps = 10;
+const int boardRows = 20;
+const int boardCols = 20;
+const int numberOfTraps = 20;
 
 const int bufferWidth = 80;
 const int bufferHeight = 60;
 
-const char blank = L'#';
+const wchar_t blank = L'░';
+const wchar_t wall = L'█';
 bool easyMode = false;
 
-void add_item(Character, char(*)[boardRows][boardCols]);
-void move_item(Character(*), int, int, char(*)[boardRows][boardCols]);
-int* get_blank_cell(char(*)[boardRows][boardCols]);
+void add_item(Character, wchar_t(*)[boardRows][boardCols]);
+void move_item(Character(*), int, int, wchar_t(*)[boardRows][boardCols]);
+int* get_blank_cell(wchar_t(*)[boardRows][boardCols]);
 float get_dist(int, int);
 
 int main()
 {
-	std::setlocale(LC_ALL, "en_US.UTF-8");
 	std::srand(std::time(nullptr));	// set seed for random numbers
 	// Create Screen Buffer
 	wchar_t* screen = new wchar_t[bufferWidth * bufferHeight];
@@ -41,7 +41,7 @@ int main()
 
 
 	// initialise grid with blank values
-	static char grid[boardRows][boardCols];
+	static wchar_t grid[boardRows][boardCols];
 	for (int i = 0; i < boardRows; i++) {
 		for (int j = 0; j < boardCols; j++) {
 			grid[i][j] = blank;
@@ -49,27 +49,33 @@ int main()
 	}
 
 	// add monster
-	//Monster monster(boardRows - 1, boardCols - 1);
-	Monster monster(0, 0);
+	Monster monster(boardRows - 1, boardCols - 1);
 	add_item(monster, &grid);
 
 	// add player
-	Player player(boardRows - 1, boardCols - 1);
-	//Player player(0, 0);
+	Player player(0, 0);
 	add_item(player, &grid);
 
 	// add traps
 	std::vector<unique_ptr<Item>> traps;
 	for (int i = 0; i < numberOfTraps; i++) {
 		int* pos = get_blank_cell(&grid);
-		traps.push_back(std::make_unique<Item>(pos[0], pos[1], 'T'));
+		traps.push_back(std::make_unique<Item>(pos[0], pos[1], L'T'));
 		grid[pos[0]][pos[1]] = traps[i]->logo;
 	}
 
 	// add gold
 	int* goldPos = get_blank_cell(&grid);
-	Item gold(goldPos[0], goldPos[1], 'G');
+	Item gold(goldPos[0], goldPos[1], L'G');
 	grid[gold.position[0]][gold.position[1]] = gold.logo;
+
+	// add walls
+	for (int i = 2; i < boardCols - 2; i++) {
+		grid[3][i] = wall;
+	}
+	for (int i = 6; i < boardRows - 4; i++) {
+		grid[i][5] = wall;
+	}
 
 	bool gameOver = false;
 	bool keyHeldDown = false;
@@ -201,15 +207,21 @@ int main()
 		// populate the screen char array with the grid
 		for (int r = 0; r < boardRows; r++) {
 			for (int c = 0; c < boardCols; c++) {
-				screen[(r + 2) * bufferWidth + (c * 2 + 4)] = grid[r][c];
+				// TODO: fix wall display and stop gold spawning in wall
+				if (grid[r][c] == wall) {
+					screen[(r + 2) * bufferWidth + c*2 + 5] == wall;
+				}
+				screen[(r + 2) * bufferWidth + c * 2 + 4] = grid[r][c];
 			}
 		}
 
 		// Display score
 		swprintf(&screen[2*bufferWidth + 3*boardCols], 12, L"Score: %d", score);
-		// TODO: Display mode
-		auto m0 = easyMode ? 'easy' : 'hard';
-		swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: %s", &m0);
+		// Display mode
+		if (easyMode)
+			swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: easy");
+		else
+			swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: hard");
 
 		// Display Frame
 		screen[bufferWidth * bufferHeight - 1] = '\0';	// end char array so Windows knows when to stop rendering
@@ -222,14 +234,15 @@ int main()
 }
 
 // Display the logo of an item/character
-void add_item(Character c, char(*g)[boardRows][boardCols]) {
+void add_item(Character c, wchar_t(*g)[boardRows][boardCols]) {
 	(*g)[c.position[0]][c.position[1]] = c.logo;
 	return;
 }
 
-void move_item(Character* c, int x, int y, char(*g)[boardRows][boardCols]) {
+void move_item(Character* c, int x, int y, wchar_t(*g)[boardRows][boardCols]) {
 	// if valid move
-	if (0 <= ((*c).position[0] + x) && ((*c).position[0] + x) <= boardRows - 1 && 0 <= ((*c).position[1] + y) && ((*c).position[1] + y) <= boardCols - 1) {
+	if (0 <= ((*c).position[0] + x) && ((*c).position[0] + x) <= boardRows - 1 && 0 <= ((*c).position[1] + y) && ((*c).position[1] + y) <= boardCols - 1
+		&& (*g)[(*c).position[0]+x][(*c).position[1]+y] != wall) {
 		// remove old item's position
 		(*g)[(*c).position[0]][(*c).position[1]] = blank;
 		// update item position
@@ -240,7 +253,7 @@ void move_item(Character* c, int x, int y, char(*g)[boardRows][boardCols]) {
 	return;
 }
 
-int* get_blank_cell(char(*g)[boardRows][boardCols]) {
+int* get_blank_cell(wchar_t(*g)[boardRows][boardCols]) {
 	static int pos[2];
 	do {
 		pos[0] = rand() % boardRows;

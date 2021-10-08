@@ -3,7 +3,7 @@ class Character
 {
 public:
 	int position[2];
-	char logo;
+	wchar_t logo;
 
 	void move(int x, int y)
 	{

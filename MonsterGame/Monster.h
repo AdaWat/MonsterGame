@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 #include "Character.h"
+
 class Monster : public Character
 {
 public:
@@ -7,6 +8,6 @@ public:
 	{
 		position[0] = x;
 		position[1] = y;
-		logo = 'M';
+		logo = L'M';
 	}
 };
