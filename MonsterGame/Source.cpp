@@ -34,7 +34,9 @@ int main()
 	std::srand(std::time(nullptr));	// set seed for random numbers
 	// Create Screen Buffer
 	wchar_t* screen = new wchar_t[bufferWidth * bufferHeight];
-	for (int i = 0; i < bufferWidth * bufferHeight; i++) screen[i] = L' ';
+	for (int i = 0; i < bufferWidth * bufferHeight; i++) {
+		screen[i] = L' ';
+	}
 	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
 	SetConsoleActiveScreenBuffer(console);
 	DWORD bytesWritten = 0;
@@ -207,13 +209,17 @@ int main()
 		// populate the screen char array with the grid
 		for (int r = 0; r < boardRows; r++) {
 			for (int c = 0; c < boardCols; c++) {
-				// TODO: fix wall display and stop gold spawning in wall
-				if (grid[r][c] == wall) {
-					screen[(r + 2) * bufferWidth + c*2 + 5] == wall;
-				}
 				screen[(r + 2) * bufferWidth + c * 2 + 4] = grid[r][c];
 			}
 		}
+		// need to do this in a different loop to the one above, otherwise the if statement won't execute
+		for (int r = 0; r < boardRows; r++) {
+			for (int c = 0; c < boardCols; c++) {
+				if (grid[r][c] == wall)
+					screen[(r + 2) * bufferWidth + c * 2 + 5] = grid[r][c];	// display walls as thicker
+			}
+		}
+
 
 		// Display score
 		swprintf(&screen[2*bufferWidth + 3*boardCols], 12, L"Score: %d", score);
@@ -222,6 +228,7 @@ int main()
 			swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: easy");
 		else
 			swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: hard");
+
 
 		// Display Frame
 		screen[bufferWidth * bufferHeight - 1] = '\0';	// end char array so Windows knows when to stop rendering
@@ -243,12 +250,9 @@ void move_item(Character* c, int x, int y, wchar_t(*g)[boardRows][boardCols]) {
 	// if valid move
 	if (0 <= ((*c).position[0] + x) && ((*c).position[0] + x) <= boardRows - 1 && 0 <= ((*c).position[1] + y) && ((*c).position[1] + y) <= boardCols - 1
 		&& (*g)[(*c).position[0]+x][(*c).position[1]+y] != wall) {
-		// remove old item's position
-		(*g)[(*c).position[0]][(*c).position[1]] = blank;
-		// update item position
-		(*c).move(x, y);
-		// add item back to grid
-		(*g)[(*c).position[0]][(*c).position[1]] = (*c).logo;
+		(*g)[(*c).position[0]][(*c).position[1]] = blank; // remove old item's position
+		(*c).move(x, y); // update item position
+		(*g)[(*c).position[0]][(*c).position[1]] = (*c).logo; // add item back to grid
 	}
 	return;
 }
