@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <thread>
 #include <vector>
+#include <stack>
 
 #include "Player.h"
 #include "Monster.h"
@@ -13,25 +14,35 @@
 
 using namespace std;
 
-const int boardRows = 20;
-const int boardCols = 20;
-const int numberOfTraps = 20;
+const int boardRows = 19;
+const int boardCols = 19;
+const int numberOfTraps = 10;
 
-const int bufferWidth = 80;
-const int bufferHeight = 60;
+const int bufferWidth = 120;
+const int bufferHeight = 35;
 
 const wchar_t blank = L'░';
 const wchar_t wall = L'█';
 bool easyMode = false;
 
+enum keys {
+	W_KEY = 0x57,
+	A_KEY = 0x41,
+	S_KEY = 0x53,
+	D_KEY = 0x44,
+	Q_KEY = 0x51,
+};
+
 void add_item(Character, wchar_t(*)[boardRows][boardCols]);
 void move_item(Character(*), int, int, wchar_t(*)[boardRows][boardCols]);
 int* get_blank_cell(wchar_t(*)[boardRows][boardCols]);
 float get_dist(int, int);
+void draw_grid(wchar_t(*)[boardRows][boardCols], wchar_t[bufferWidth * bufferHeight]);
+void generate_maze(wchar_t(*)[boardRows][boardCols]);
 
 int main()
 {
-	std::srand(std::time(nullptr));	// set seed for random numbers
+	srand(time(nullptr));	// set seed for random numbers
 	// Create Screen Buffer
 	wchar_t* screen = new wchar_t[bufferWidth * bufferHeight];
 	for (int i = 0; i < bufferWidth * bufferHeight; i++) {
@@ -44,25 +55,29 @@ int main()
 
 	// initialise grid with blank values
 	static wchar_t grid[boardRows][boardCols];
+	// TODO: use memset()
 	for (int i = 0; i < boardRows; i++) {
 		for (int j = 0; j < boardCols; j++) {
 			grid[i][j] = blank;
 		}
 	}
 
-	// add monster
-	Monster monster(boardRows - 1, boardCols - 1);
-	add_item(monster, &grid);
+	generate_maze(&grid);
 
 	// add player
 	Player player(0, 0);
 	add_item(player, &grid);
 
+	// add monster
+	Monster monster(boardRows - 1, boardCols - 1);
+	add_item(monster, &grid);
+
+
 	// add traps
-	std::vector<unique_ptr<Item>> traps;
+	vector<unique_ptr<Item>> traps;
 	for (int i = 0; i < numberOfTraps; i++) {
 		int* pos = get_blank_cell(&grid);
-		traps.push_back(std::make_unique<Item>(pos[0], pos[1], L'T'));
+		traps.push_back(make_unique<Item>(pos[0], pos[1], L'T'));
 		grid[pos[0]][pos[1]] = traps[i]->logo;
 	}
 
@@ -71,14 +86,6 @@ int main()
 	Item gold(goldPos[0], goldPos[1], L'G');
 	grid[gold.position[0]][gold.position[1]] = gold.logo;
 
-	// add walls
-	for (int i = 2; i < boardCols - 2; i++) {
-		grid[3][i] = wall;
-	}
-	for (int i = 6; i < boardRows - 4; i++) {
-		grid[i][5] = wall;
-	}
-
 	bool gameOver = false;
 	bool keyHeldDown = false;
 	bool monsterAwake = false;
@@ -86,42 +93,42 @@ int main()
 
 	int score = 0;
 
+	auto getMonsterDist = [&](int x, int y) {
+		return abs(get_dist(player.position[0] - (monster.position[0] + x), player.position[1] - (monster.position[1] + y)));
+	};
+
 	while (!gameOver) {
 		// slow down loop
 		this_thread::sleep_for(50ms);
 
 		// ---Keyboard input---
 		if (!keyHeldDown) {
-			// W key
-			if (GetAsyncKeyState(0x57) < 0) {
+			if (GetAsyncKeyState(W_KEY) < 0) {
 				move_item(&player, -1, 0, &grid);
 				keyHeldDown = true;
 				monsterMove = true;
 			}
-			// A key
-			else if (GetAsyncKeyState(0x41) < 0) {
+			else if (GetAsyncKeyState(A_KEY) < 0) {
 				move_item(&player, 0, -1, &grid);
 				keyHeldDown = true;
 				monsterMove = true;
 			}
-			// S key
-			else if (GetAsyncKeyState(0x53) < 0) {
+			else if (GetAsyncKeyState(S_KEY) < 0) {
 				move_item(&player, 1, 0, &grid);
 				keyHeldDown = true;
 				monsterMove = true;
 			}
-			// D key
-			else if (GetAsyncKeyState(0x44) < 0) {
+			else if (GetAsyncKeyState(D_KEY) < 0) {
 				move_item(&player, 0, 1, &grid);
 				keyHeldDown = true;
 				monsterMove = true;
 			}
-			else if (GetAsyncKeyState(0x51) < 0) {
+			else if (GetAsyncKeyState(Q_KEY) < 0) {
 				easyMode = !easyMode;
 				keyHeldDown = true;
 			}
 		}
-		else if (!(GetAsyncKeyState(0x57) < 0 || GetAsyncKeyState(0x41) < 0 || GetAsyncKeyState(0x53) < 0 || GetAsyncKeyState(0x44) < 0 || GetAsyncKeyState(0x51) < 0)) {
+		else if (!(GetAsyncKeyState(W_KEY) < 0 || GetAsyncKeyState(A_KEY) < 0 || GetAsyncKeyState(S_KEY) < 0 || GetAsyncKeyState(D_KEY) < 0 || GetAsyncKeyState(Q_KEY) < 0)) {
 			// if a button isn't held down, allow the player to move next loop
 			keyHeldDown = false;
 		}
@@ -133,7 +140,7 @@ int main()
 
 		// detect collision with traps 
 		if (!monsterAwake) {
-			for (std::unique_ptr<Item> &o : traps) {
+			for (unique_ptr<Item>& o : traps) {
 				if (player.position[0] == o->position[0] && player.position[1] == o->position[1]) {
 					// TODO: stop displaying the traps (b/c they are about to be cleared)
 					for (int r = 0; r < boardRows; r++) {
@@ -180,10 +187,10 @@ int main()
 				}
 			}
 			else {
-				float upDist = abs(get_dist(player.position[0] - (monster.position[0] - 1), player.position[1] - monster.position[1]));
-				float downDist = abs(get_dist(player.position[0] - (monster.position[0] + 1), player.position[1] - monster.position[1]));
-				float leftDist = abs(get_dist(player.position[0] - monster.position[0], player.position[1] - (monster.position[1] - 1)));
-				float rightDist = abs(get_dist(player.position[0] - monster.position[0], player.position[1] - (monster.position[1] + 1)));
+				float upDist = getMonsterDist(-1, 0);
+				float downDist = getMonsterDist(1, 0);
+				float leftDist = getMonsterDist(0, -1);
+				float rightDist = getMonsterDist(0, 1);
 				float minDist = min(upDist, min(downDist, min(leftDist, rightDist)));
 
 				if (minDist == upDist) {
@@ -206,28 +213,15 @@ int main()
 		// draw gold (in case the monster walked over it in the last loop)
 		grid[gold.position[0]][gold.position[1]] = !(monster.position[0] == gold.position[0] && monster.position[1] == gold.position[1]) ? gold.logo : monster.logo;
 
-		// populate the screen char array with the grid
-		for (int r = 0; r < boardRows; r++) {
-			for (int c = 0; c < boardCols; c++) {
-				screen[(r + 2) * bufferWidth + c * 2 + 4] = grid[r][c];
-			}
-		}
-		// need to do this in a different loop to the one above, otherwise the if statement won't execute
-		for (int r = 0; r < boardRows; r++) {
-			for (int c = 0; c < boardCols; c++) {
-				if (grid[r][c] == wall)
-					screen[(r + 2) * bufferWidth + c * 2 + 5] = grid[r][c];	// display walls as thicker
-			}
-		}
-
+		draw_grid(&grid, screen);
 
 		// Display score
-		swprintf(&screen[2*bufferWidth + 3*boardCols], 12, L"Score: %d", score);
+		std::swprintf(&screen[2 * bufferWidth + 3 * boardCols], 12, L"Score: %d", score);
 		// Display mode
 		if (easyMode)
-			swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: easy");
+			std::swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: easy");
 		else
-			swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: hard");
+			std::swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: hard");
 
 
 		// Display Frame
@@ -249,7 +243,7 @@ void add_item(Character c, wchar_t(*g)[boardRows][boardCols]) {
 void move_item(Character* c, int x, int y, wchar_t(*g)[boardRows][boardCols]) {
 	// if valid move
 	if (0 <= ((*c).position[0] + x) && ((*c).position[0] + x) <= boardRows - 1 && 0 <= ((*c).position[1] + y) && ((*c).position[1] + y) <= boardCols - 1
-		&& (*g)[(*c).position[0]+x][(*c).position[1]+y] != wall) {
+		&& (*g)[(*c).position[0] + x][(*c).position[1] + y] != wall) {
 		(*g)[(*c).position[0]][(*c).position[1]] = blank; // remove old item's position
 		(*c).move(x, y); // update item position
 		(*g)[(*c).position[0]][(*c).position[1]] = (*c).logo; // add item back to grid
@@ -267,5 +261,77 @@ int* get_blank_cell(wchar_t(*g)[boardRows][boardCols]) {
 }
 
 float get_dist(int x, int y) {
-	return sqrt(x*x + y*y);
+	return sqrt(x * x + y * y);
+}
+
+void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * bufferHeight]) {
+	// populate the screen char array with the grid
+	for (int r = 0; r < boardRows; r++) {
+		for (int c = 0; c < boardCols; c++) {
+			s[(r + 2) * bufferWidth + c * 2 + 4] = (*g)[r][c];
+		}
+	}
+	for (int r = 0; r < boardRows; r++) {
+		for (int c = 0; c < boardCols; c++) {
+			if ((*g)[r][c] == wall)
+				s[(r + 2) * bufferWidth + c * 2 + 5] = (*g)[r][c];	// display walls as squares
+		}
+	}
+	return;
+}
+
+vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar_t(*maze)[boardRows][boardCols]) {
+	vector<pair<int, int>> unvisitedNeighbours;
+	// top neighbour
+	if (cell.first > 0 && *maze[cell.first - 2][cell.second] == blank) {
+		unvisitedNeighbours.push_back(make_pair(cell.first - 2, cell.second));
+	}
+	// bottom neighbour
+	if (cell.first < boardRows && *maze[cell.first + 2][cell.second] == blank) {
+		unvisitedNeighbours.push_back(make_pair(cell.first + 2, cell.second));
+	}
+	// left neighbour
+	if (cell.second > 0 && *maze[cell.first][cell.second - 2] == blank) {
+		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second - 2));
+	}
+	// right neighbour
+	if (cell.second < boardCols && *maze[cell.first][cell.second + 2] == blank) {
+		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second + 2));
+	}
+	return unvisitedNeighbours;
+}
+
+void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
+	stack<pair<int, int>> cellPath;
+	int visitedCellCounter = 0;
+	wchar_t maze[boardRows][boardCols];
+	// initialise grid of walls with every other cell not being a wall
+	for (int r = 0; r < boardRows; r++) {
+		for (int c = 0; c < boardCols; c++) {
+			maze[r][c] = r % 2 == 0 && c % 2 == 0 ? blank : wall;
+		}
+	}
+	cellPath.push(make_pair(0, 0));	// starting point
+
+	while (visitedCellCounter < boardRows * boardCols) {
+		// --mark cell as visited--
+		maze[cellPath.top().first][cellPath.top().second] = L'V';
+
+		// --get coords of unvisited neighbours for cell at top of stack--
+		vector<pair<int, int>> unvisitedNeighbours = get_unvisited_neighbour_coords(cellPath.top(), &maze);
+
+		// --if number of unvisited neighbours is 0, pop top cell off stack. Repeat until there is a cell with unvisited neighbours--
+		while (size(unvisitedNeighbours) == 0) {
+			cellPath.pop();
+			unvisitedNeighbours = get_unvisited_neighbour_coords(cellPath.top(), &maze);
+		}
+		// --choose a random neighbour--
+
+		// --remove wall between chosen neighbour and current cell--
+
+		// --add chosen neighbour to stack--
+		
+	}
+
+	return;
 }
