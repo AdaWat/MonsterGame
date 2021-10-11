@@ -287,6 +287,7 @@ vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar
 		unvisitedNeighbours.push_back(make_pair(cell.first - 2, cell.second));
 	}
 	// bottom neighbour
+	// TODO: this should activate when cell is in top left!?
 	if (cell.first < boardRows && *maze[cell.first + 2][cell.second] == blank) {
 		unvisitedNeighbours.push_back(make_pair(cell.first + 2, cell.second));
 	}
@@ -326,12 +327,15 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 			unvisitedNeighbours = get_unvisited_neighbour_coords(cellPath.top(), &maze);
 		}
 		// --choose a random neighbour--
+		pair<int, int> neighbour = unvisitedNeighbours[rand() % unvisitedNeighbours.size()];
 
 		// --remove wall between chosen neighbour and current cell--
+		int wallR = (cellPath.top().first + neighbour.first) / 2;
+		int wallC = (cellPath.top().second + neighbour.second) / 2;
+		maze[wallR][wallC] = blank;
 
 		// --add chosen neighbour to stack--
-		
+		cellPath.push(neighbour);
 	}
-
 	return;
 }
