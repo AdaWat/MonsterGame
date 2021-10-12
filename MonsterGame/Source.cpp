@@ -14,8 +14,8 @@
 
 using namespace std;
 
+const int boardCols = 20;
 const int boardRows = 30;
-const int boardCols = 40;
 const int numberOfTraps = 20;
 
 const int bufferWidth = 120;
@@ -216,12 +216,12 @@ int main()
 		draw_grid(&grid, screen);
 
 		// Display score
-		std::swprintf(&screen[2 * bufferWidth + 3 * boardCols], 12, L"Score: %d", score);
+		std::swprintf(&screen[2 * bufferWidth + boardCols * 2 + 7], 12, L"Score: %d", score);
 		// Display mode
 		if (easyMode)
-			std::swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: easy");
+			std::swprintf(&screen[6 * bufferWidth + boardCols * 2 + 7], 12, L"Mode: easy");
 		else
-			std::swprintf(&screen[6 * bufferWidth + 3 * boardCols], 12, L"Mode: hard");
+			std::swprintf(&screen[6 * bufferWidth + boardCols * 2 + 7], 12, L"Mode: hard");
 
 
 		// Display Frame
@@ -302,6 +302,7 @@ vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar
 }
 
 void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
+	// TODO: why are some areas of maze closed off?
 	stack<pair<int, int>> cellPath;
 	int visitedCellCounter = 0;
 	wchar_t maze[boardRows][boardCols];
@@ -340,7 +341,7 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	// mark last cell as visited (probably not necessary)
 	maze[cellPath.top().first][cellPath.top().second] = L'V';
 
-	// Temporary solution?
+	// Temporary solution to add walls to grid?
 	for (int r = 0; r < boardRows; r++) {
 		for (int c = 0; c < boardCols; c++) {
 			if (maze[r][c] == wall)
