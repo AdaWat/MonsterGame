@@ -14,9 +14,9 @@
 
 using namespace std;
 
-const int boardRows = 19;
-const int boardCols = 19;
-const int numberOfTraps = 10;
+const int boardRows = 30;
+const int boardCols = 40;
+const int numberOfTraps = 20;
 
 const int bufferWidth = 120;
 const int bufferHeight = 35;
@@ -68,8 +68,8 @@ int main()
 	Player player(0, 0);
 	add_item(player, &grid);
 
-	// add monster
-	Monster monster(boardRows - 1, boardCols - 1);
+	// add monster in bottom right corner that isn't a wall
+	Monster monster(grid[boardRows - 1][boardCols - 1] == blank ? boardRows - 1 : boardRows - 2, grid[boardRows - 1][boardCols - 1] == blank ? boardCols - 1 : boardCols - 2);
 	add_item(monster, &grid);
 
 
@@ -132,7 +132,7 @@ int main()
 			// if a button isn't held down, allow the player to move next loop
 			keyHeldDown = false;
 		}
-
+		// TODO: make most of these subroutines
 		// detect collision with monster
 		if (player.position[0] == monster.position[0] && player.position[1] == monster.position[1]) {
 			gameOver = true;
@@ -283,20 +283,19 @@ void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * buffer
 vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar_t(*maze)[boardRows][boardCols]) {
 	vector<pair<int, int>> unvisitedNeighbours;
 	// top neighbour
-	if (cell.first > 0 && *maze[cell.first - 2][cell.second] == blank) {
+	if (cell.first > 0 && (*maze)[cell.first - 2][cell.second] == blank) {
 		unvisitedNeighbours.push_back(make_pair(cell.first - 2, cell.second));
 	}
 	// bottom neighbour
-	// TODO: this should activate when cell is in top left!?
-	if (cell.first < boardRows && *maze[cell.first + 2][cell.second] == blank) {
+	if (cell.first < (boardRows-1) && (*maze)[cell.first + 2][cell.second] == blank) {
 		unvisitedNeighbours.push_back(make_pair(cell.first + 2, cell.second));
 	}
 	// left neighbour
-	if (cell.second > 0 && *maze[cell.first][cell.second - 2] == blank) {
+	if (cell.second > 0 && (*maze)[cell.first][cell.second - 2] == blank) {
 		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second - 2));
 	}
 	// right neighbour
-	if (cell.second < boardCols && *maze[cell.first][cell.second + 2] == blank) {
+	if (cell.second < (boardCols-1) && (*maze)[cell.first][cell.second + 2] == blank) {
 		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second + 2));
 	}
 	return unvisitedNeighbours;
@@ -314,9 +313,10 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	}
 	cellPath.push(make_pair(0, 0));	// starting point
 
-	while (visitedCellCounter < boardRows * boardCols) {
+	while (visitedCellCounter < ceil((double)boardRows/2) * ceil((double)boardCols / 2) - 1) {
 		// --mark cell as visited--
 		maze[cellPath.top().first][cellPath.top().second] = L'V';
+		visitedCellCounter++;
 
 		// --get coords of unvisited neighbours for cell at top of stack--
 		vector<pair<int, int>> unvisitedNeighbours = get_unvisited_neighbour_coords(cellPath.top(), &maze);
@@ -336,6 +336,16 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 
 		// --add chosen neighbour to stack--
 		cellPath.push(neighbour);
+	}
+	// mark last cell as visited (probably not necessary)
+	maze[cellPath.top().first][cellPath.top().second] = L'V';
+
+	// Temporary solution?
+	for (int r = 0; r < boardRows; r++) {
+		for (int c = 0; c < boardCols; c++) {
+			if (maze[r][c] == wall)
+				(*g)[r][c] = wall;
+		}
 	}
 	return;
 }
