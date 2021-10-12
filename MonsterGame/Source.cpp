@@ -14,14 +14,14 @@
 
 using namespace std;
 
-const int boardCols = 20;
+const int boardCols = 50;
 const int boardRows = 30;
 const int numberOfTraps = 20;
 
 const int bufferWidth = 120;
 const int bufferHeight = 35;
 
-const wchar_t blank = L'░';
+const wchar_t blank = L' ';
 const wchar_t wall = L'█';
 bool easyMode = false;
 
@@ -287,7 +287,7 @@ vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar
 		unvisitedNeighbours.push_back(make_pair(cell.first - 2, cell.second));
 	}
 	// bottom neighbour
-	if (cell.first < (boardRows-1) && (*maze)[cell.first + 2][cell.second] == blank) {
+	if (cell.first <= boardRows - 2 && (*maze)[cell.first + 2][cell.second] == blank) {
 		unvisitedNeighbours.push_back(make_pair(cell.first + 2, cell.second));
 	}
 	// left neighbour
@@ -295,7 +295,7 @@ vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar
 		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second - 2));
 	}
 	// right neighbour
-	if (cell.second < (boardCols-1) && (*maze)[cell.first][cell.second + 2] == blank) {
+	if (cell.second <= boardCols - 2 && (*maze)[cell.first][cell.second + 2] == blank) {
 		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second + 2));
 	}
 	return unvisitedNeighbours;
@@ -314,7 +314,7 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	}
 	cellPath.push(make_pair(0, 0));	// starting point
 
-	while (visitedCellCounter < ceil((double)boardRows/2) * ceil((double)boardCols / 2) - 1) {
+	while (visitedCellCounter <= ceil((double)boardRows / 2) * ceil((double)boardCols / 2) - 1) {
 		// --mark cell as visited--
 		maze[cellPath.top().first][cellPath.top().second] = L'V';
 		visitedCellCounter++;
