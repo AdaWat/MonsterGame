@@ -14,12 +14,12 @@
 
 using namespace std;
 
-const int boardCols = 50;
-const int boardRows = 30;
-const int numberOfTraps = 20;
+const int boardCols = 101;
+const int boardRows = 53;
+const int numberOfTraps = 1;
 
-const int bufferWidth = 120;
-const int bufferHeight = 35;
+const int bufferWidth = 220;
+const int bufferHeight = 68;
 
 const wchar_t blank = L' ';
 const wchar_t wall = L'█';
@@ -216,12 +216,12 @@ int main()
 		draw_grid(&grid, screen);
 
 		// Display score
-		std::swprintf(&screen[2 * bufferWidth + boardCols * 2 + 7], 12, L"Score: %d", score);
+		std::swprintf(&screen[2 * bufferWidth + boardCols * 2 + 10], 12, L"Score: %d", score);
 		// Display mode
 		if (easyMode)
-			std::swprintf(&screen[6 * bufferWidth + boardCols * 2 + 7], 12, L"Mode: easy");
+			std::swprintf(&screen[6 * bufferWidth + boardCols * 2 + 10], 12, L"Mode: easy");
 		else
-			std::swprintf(&screen[6 * bufferWidth + boardCols * 2 + 7], 12, L"Mode: hard");
+			std::swprintf(&screen[6 * bufferWidth + boardCols * 2 + 10], 12, L"Mode: hard");
 
 
 		// Display Frame
@@ -277,6 +277,28 @@ void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * buffer
 				s[(r + 2) * bufferWidth + c * 2 + 5] = (*g)[r][c];	// display walls as squares
 		}
 	}
+	// top wall
+	for (int i = 0; i < boardCols*2+4; i++) {
+		s[bufferWidth + 2 + i] = wall;
+	}
+	// left wall
+	for (int i = 0; i < boardRows; i++) {
+		s[bufferWidth*(i+2) + 2] = wall;
+		s[bufferWidth * (i + 2) + 3] = wall;
+	}
+	// bottom wall
+	if (boardRows % 2 == 1) {
+		for (int i = 0; i < boardCols * 2 + 4; i++) {
+			s[(bufferWidth*(boardRows+2)) + 2 + i] = wall;
+		}
+	}
+	// right wall
+	
+	for (int i = 0; i < boardRows; i++) {
+		s[bufferWidth * (i + 2) + boardCols*2 + 4] = wall;
+		s[bufferWidth * (i + 2) + boardCols * 2 + 5] = wall;
+	}
+	
 	return;
 }
 
@@ -304,7 +326,7 @@ vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar
 void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	// TODO: why are some areas of maze closed off?
 	stack<pair<int, int>> cellPath;
-	int visitedCellCounter = 0;
+	int visitedCellCounter = 1;
 	wchar_t maze[boardRows][boardCols];
 	// initialise grid of walls with every other cell not being a wall
 	for (int r = 0; r < boardRows; r++) {
@@ -314,7 +336,7 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	}
 	cellPath.push(make_pair(0, 0));	// starting point
 
-	while (visitedCellCounter <= ceil((double)boardRows / 2) * ceil((double)boardCols / 2) - 1) {
+	while (visitedCellCounter < ceil(boardRows / 2.0) * ceil(boardCols / 2.0)) {
 		// --mark cell as visited--
 		maze[cellPath.top().first][cellPath.top().second] = L'V';
 		visitedCellCounter++;
