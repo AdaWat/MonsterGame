@@ -14,7 +14,7 @@
 
 using namespace std;
 
-const int boardCols = 50;
+const int boardCols = 49;
 const int boardRows = 30;
 const int numberOfTraps = 1;
 
@@ -278,27 +278,32 @@ void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * buffer
 		}
 	}
 	// top wall
-	for (int i = 0; i < boardCols*2+4; i++) {
-		s[bufferWidth + 2 + i] = wall;
+	for (int i = 2; i < boardCols * 2 + 4; i++) {
+		s[bufferWidth + i] = wall;
 	}
 	// left wall
-	for (int i = 0; i < boardRows; i++) {
-		s[bufferWidth*(i+2) + 2] = wall;
-		s[bufferWidth * (i + 2) + 3] = wall;
+	for (int i = 2; i < boardRows+2; i++) {
+		s[bufferWidth * i + 2] = wall;
+		s[bufferWidth * i + 3] = wall;
 	}
 	// bottom wall
 	if (boardRows % 2 == 1) {
-		for (int i = 0; i < boardCols * 2 + 4; i++) {
-			s[(bufferWidth*(boardRows+2)) + 2 + i] = wall;
+		for (int i = 2; i < boardCols * 2 + 4; i++) {
+			s[bufferWidth * (boardRows + 2) + i] = wall;
 		}
 	}
 	// right wall
-	
-	for (int i = 0; i < boardRows; i++) {
-		s[bufferWidth * (i + 2) + boardCols*2 + 4] = wall;
-		s[bufferWidth * (i + 2) + boardCols * 2 + 5] = wall;
+	if (boardCols % 2 == 1) {
+		for (int i = 1; i < boardRows + 2; i++) {
+			s[bufferWidth * i + boardCols * 2 + 4] = wall;
+			s[bufferWidth * i + boardCols * 2 + 5] = wall;
+		}
 	}
-	
+	// bottom-right corner
+	if (boardRows % 2 == 1 && boardCols % 2 == 1) {
+		s[bufferWidth * (boardRows + 2) + boardCols*2 + 4] = wall;
+		s[bufferWidth * (boardRows + 2) + boardCols * 2 + 5] = wall;
+	}
 	return;
 }
 
