@@ -14,12 +14,12 @@
 
 using namespace std;
 
-const int boardCols = 101;
-const int boardRows = 53;
+const int boardCols = 50;
+const int boardRows = 30;
 const int numberOfTraps = 1;
 
-const int bufferWidth = 220;
-const int bufferHeight = 68;
+const int bufferWidth = 120;
+const int bufferHeight = 35;
 
 const wchar_t blank = L' ';
 const wchar_t wall = L'█';
@@ -309,7 +309,7 @@ vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar
 		unvisitedNeighbours.push_back(make_pair(cell.first - 2, cell.second));
 	}
 	// bottom neighbour
-	if (cell.first <= boardRows - 2 && (*maze)[cell.first + 2][cell.second] == blank) {
+	if (cell.first < boardRows - 2 && (*maze)[cell.first + 2][cell.second] == blank) {
 		unvisitedNeighbours.push_back(make_pair(cell.first + 2, cell.second));
 	}
 	// left neighbour
@@ -317,7 +317,7 @@ vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar
 		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second - 2));
 	}
 	// right neighbour
-	if (cell.second <= boardCols - 2 && (*maze)[cell.first][cell.second + 2] == blank) {
+	if (cell.second < boardCols - 2 && (*maze)[cell.first][cell.second + 2] == blank) {
 		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second + 2));
 	}
 	return unvisitedNeighbours;
@@ -326,7 +326,6 @@ vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar
 void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	// TODO: why are some areas of maze closed off?
 	stack<pair<int, int>> cellPath;
-	int visitedCellCounter = 1;
 	wchar_t maze[boardRows][boardCols];
 	// initialise grid of walls with every other cell not being a wall
 	for (int r = 0; r < boardRows; r++) {
@@ -335,12 +334,10 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 		}
 	}
 	cellPath.push(make_pair(0, 0));	// starting point
+	maze[cellPath.top().first][cellPath.top().second] = L'V';
+	int visitedCellCounter = 1;
 
 	while (visitedCellCounter < ceil(boardRows / 2.0) * ceil(boardCols / 2.0)) {
-		// --mark cell as visited--
-		maze[cellPath.top().first][cellPath.top().second] = L'V';
-		visitedCellCounter++;
-
 		// --get coords of unvisited neighbours for cell at top of stack--
 		vector<pair<int, int>> unvisitedNeighbours = get_unvisited_neighbour_coords(cellPath.top(), &maze);
 
@@ -359,6 +356,10 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 
 		// --add chosen neighbour to stack--
 		cellPath.push(neighbour);
+
+		// --mark cell as visited--
+		maze[cellPath.top().first][cellPath.top().second] = L'V';
+		visitedCellCounter++;
 	}
 	// mark last cell as visited (probably not necessary)
 	maze[cellPath.top().first][cellPath.top().second] = L'V';
