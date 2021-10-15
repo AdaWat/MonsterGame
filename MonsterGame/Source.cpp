@@ -15,7 +15,7 @@
 using namespace std;
 
 const int boardCols = 49;
-const int boardRows = 30;
+const int boardRows = 31;
 const int numberOfTraps = 1;
 
 const int bufferWidth = 120;
@@ -33,12 +33,16 @@ enum keys {
 	Q_KEY = 0x51,
 };
 
+int main();
+
 void add_item(Character, wchar_t(*)[boardRows][boardCols]);
 void move_item(Character(*), int, int, wchar_t(*)[boardRows][boardCols]);
 int* get_blank_cell(wchar_t(*)[boardRows][boardCols]);
 float get_dist(int, int);
 void draw_grid(wchar_t(*)[boardRows][boardCols], wchar_t[bufferWidth * bufferHeight]);
 void generate_maze(wchar_t(*)[boardRows][boardCols]);
+pair<int, int> path_find(Character(*), wchar_t(*)[boardRows][boardCols]);
+
 
 int main()
 {
@@ -68,8 +72,8 @@ int main()
 	Player player(0, 0);
 	add_item(player, &grid);
 
-	// add monster in bottom right corner that isn't a wall
-	Monster monster(grid[boardRows - 1][boardCols - 1] == blank ? boardRows - 1 : boardRows - 2, grid[boardRows - 1][boardCols - 1] == blank ? boardCols - 1 : boardCols - 2);
+	// add monster (in bottom right corner)
+	Monster monster(boardRows % 2 == 1 ? boardRows - 1 : boardRows - 2, boardCols % 2 == 1 ? boardCols - 1 : boardCols - 2);
 	add_item(monster, &grid);
 
 
@@ -168,44 +172,48 @@ int main()
 
 		// move monster logic
 		if (monsterAwake && monsterMove) {
-			if (easyMode) {
-				bool moveBias = rand() % 2 - 1;		// true=vertical bias  false=horizontal bias
-				int vertOffset = player.position[0] - monster.position[0];
-				int horOffset = player.position[1] - monster.position[1];
+			//if (easyMode) {
+			//	bool moveBias = rand() % 2 - 1;		// true=vertical bias  false=horizontal bias
+			//	int vertOffset = player.position[0] - monster.position[0];
+			//	int horOffset = player.position[1] - monster.position[1];
 
-				if ((vertOffset < 0 && moveBias) || (vertOffset < 0 && horOffset == 0)) {
-					move_item(&monster, -1, 0, &grid);
-				}
-				else if ((vertOffset > 0 && moveBias) || (vertOffset > 0 && horOffset == 0)) {
-					move_item(&monster, 1, 0, &grid);
-				}
-				else if ((horOffset < 0 && !moveBias) || (horOffset < 0 && vertOffset == 0)) {
-					move_item(&monster, 0, -1, &grid);
-				}
-				else if ((horOffset > 0 && !moveBias) || (horOffset > 0 && vertOffset == 0)) {
-					move_item(&monster, 0, 1, &grid);
-				}
-			}
-			else {
-				float upDist = getMonsterDist(-1, 0);
-				float downDist = getMonsterDist(1, 0);
-				float leftDist = getMonsterDist(0, -1);
-				float rightDist = getMonsterDist(0, 1);
-				float minDist = min(upDist, min(downDist, min(leftDist, rightDist)));
+			//	if ((vertOffset < 0 && moveBias) || (vertOffset < 0 && horOffset == 0)) {
+			//		move_item(&monster, -1, 0, &grid);
+			//	}
+			//	else if ((vertOffset > 0 && moveBias) || (vertOffset > 0 && horOffset == 0)) {
+			//		move_item(&monster, 1, 0, &grid);
+			//	}
+			//	else if ((horOffset < 0 && !moveBias) || (horOffset < 0 && vertOffset == 0)) {
+			//		move_item(&monster, 0, -1, &grid);
+			//	}
+			//	else if ((horOffset > 0 && !moveBias) || (horOffset > 0 && vertOffset == 0)) {
+			//		move_item(&monster, 0, 1, &grid);
+			//	}
+			//}
+			//else {
+			//	float upDist = getMonsterDist(-1, 0);
+			//	float downDist = getMonsterDist(1, 0);
+			//	float leftDist = getMonsterDist(0, -1);
+			//	float rightDist = getMonsterDist(0, 1);
+			//	float minDist = min(upDist, min(downDist, min(leftDist, rightDist)));
 
-				if (minDist == upDist) {
-					move_item(&monster, -1, 0, &grid);
-				}
-				else if (minDist == downDist) {
-					move_item(&monster, 1, 0, &grid);
-				}
-				else if (minDist == leftDist) {
-					move_item(&monster, 0, -1, &grid);
-				}
-				else if (minDist == rightDist) {
-					move_item(&monster, 0, 1, &grid);
-				}
-			}
+			//	if (minDist == upDist) {
+			//		move_item(&monster, -1, 0, &grid);
+			//	}
+			//	else if (minDist == downDist) {
+			//		move_item(&monster, 1, 0, &grid);
+			//	}
+			//	else if (minDist == leftDist) {
+			//		move_item(&monster, 0, -1, &grid);
+			//	}
+			//	else if (minDist == rightDist) {
+			//		move_item(&monster, 0, 1, &grid);
+			//	}
+			//}
+		
+			// TODO: hard mode=move 2 squares ; easy mode=move 1
+			pair<int, int> dir = path_find(&monster, &grid);
+			move_item(&monster, dir.first, dir.second, &grid);
 		}
 		monsterMove = false;
 
@@ -222,7 +230,6 @@ int main()
 			std::swprintf(&screen[6 * bufferWidth + boardCols * 2 + 10], 12, L"Mode: easy");
 		else
 			std::swprintf(&screen[6 * bufferWidth + boardCols * 2 + 10], 12, L"Mode: hard");
-
 
 		// Display Frame
 		screen[bufferWidth * bufferHeight - 1] = '\0';	// end char array so Windows knows when to stop rendering
@@ -266,39 +273,31 @@ float get_dist(int x, int y) {
 
 void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * bufferHeight]) {
 	// populate the screen char array with the grid
-	for (int r = 0; r < boardRows; r++) {
-		for (int c = 0; c < boardCols; c++) {
+	for (int r = 0; r < boardRows; r++)
+		for (int c = 0; c < boardCols; c++)
 			s[(r + 2) * bufferWidth + c * 2 + 4] = (*g)[r][c];
-		}
-	}
-	for (int r = 0; r < boardRows; r++) {
-		for (int c = 0; c < boardCols; c++) {
+	for (int r = 0; r < boardRows; r++)
+		for (int c = 0; c < boardCols; c++)
 			if ((*g)[r][c] == wall)
 				s[(r + 2) * bufferWidth + c * 2 + 5] = (*g)[r][c];	// display walls as squares
-		}
-	}
 	// top wall
-	for (int i = 2; i < boardCols * 2 + 4; i++) {
+	for (int i = 2; i < boardCols * 2 + 4; i++)
 		s[bufferWidth + i] = wall;
-	}
 	// left wall
 	for (int i = 2; i < boardRows+2; i++) {
 		s[bufferWidth * i + 2] = wall;
 		s[bufferWidth * i + 3] = wall;
 	}
 	// bottom wall
-	if (boardRows % 2 == 1) {
-		for (int i = 2; i < boardCols * 2 + 4; i++) {
+	if (boardRows % 2 == 1)
+		for (int i = 2; i < boardCols * 2 + 4; i++)
 			s[bufferWidth * (boardRows + 2) + i] = wall;
-		}
-	}
 	// right wall
-	if (boardCols % 2 == 1) {
+	if (boardCols % 2 == 1)
 		for (int i = 1; i < boardRows + 2; i++) {
 			s[bufferWidth * i + boardCols * 2 + 4] = wall;
 			s[bufferWidth * i + boardCols * 2 + 5] = wall;
 		}
-	}
 	// bottom-right corner
 	if (boardRows % 2 == 1 && boardCols % 2 == 1) {
 		s[bufferWidth * (boardRows + 2) + boardCols*2 + 4] = wall;
@@ -310,26 +309,21 @@ void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * buffer
 vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar_t(*maze)[boardRows][boardCols]) {
 	vector<pair<int, int>> unvisitedNeighbours;
 	// top neighbour
-	if (cell.first > 0 && (*maze)[cell.first - 2][cell.second] == blank) {
+	if (cell.first > 0 && (*maze)[cell.first - 2][cell.second] == blank)
 		unvisitedNeighbours.push_back(make_pair(cell.first - 2, cell.second));
-	}
 	// bottom neighbour
-	if (cell.first < boardRows - 2 && (*maze)[cell.first + 2][cell.second] == blank) {
+	if (cell.first < boardRows - 2 && (*maze)[cell.first + 2][cell.second] == blank)
 		unvisitedNeighbours.push_back(make_pair(cell.first + 2, cell.second));
-	}
 	// left neighbour
-	if (cell.second > 0 && (*maze)[cell.first][cell.second - 2] == blank) {
+	if (cell.second > 0 && (*maze)[cell.first][cell.second - 2] == blank)
 		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second - 2));
-	}
 	// right neighbour
-	if (cell.second < boardCols - 2 && (*maze)[cell.first][cell.second + 2] == blank) {
+	if (cell.second < boardCols - 2 && (*maze)[cell.first][cell.second + 2] == blank)
 		unvisitedNeighbours.push_back(make_pair(cell.first, cell.second + 2));
-	}
 	return unvisitedNeighbours;
 }
 
 void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
-	// TODO: why are some areas of maze closed off?
 	stack<pair<int, int>> cellPath;
 	wchar_t maze[boardRows][boardCols];
 	// initialise grid of walls with every other cell not being a wall
@@ -343,33 +337,26 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	int visitedCellCounter = 1;
 
 	while (visitedCellCounter < ceil(boardRows / 2.0) * ceil(boardCols / 2.0)) {
-		// --get coords of unvisited neighbours for cell at top of stack--
-		vector<pair<int, int>> unvisitedNeighbours = get_unvisited_neighbour_coords(cellPath.top(), &maze);
+		vector<pair<int, int>> unvisitedNeighbours = get_unvisited_neighbour_coords(cellPath.top(), &maze); // get coords of unvisited neighbours for cell at top of stack
 
-		// --if number of unvisited neighbours is 0, pop top cell off stack. Repeat until there is a cell with unvisited neighbours--
+		// if number of unvisited neighbours is 0, pop top cell off stack. Repeat until there is a cell with unvisited neighbours
 		while (size(unvisitedNeighbours) == 0) {
 			cellPath.pop();
 			unvisitedNeighbours = get_unvisited_neighbour_coords(cellPath.top(), &maze);
 		}
-		// --choose a random neighbour--
-		pair<int, int> neighbour = unvisitedNeighbours[rand() % unvisitedNeighbours.size()];
+		pair<int, int> neighbour = unvisitedNeighbours[rand() % unvisitedNeighbours.size()]; // choose a random neighbour
 
-		// --remove wall between chosen neighbour and current cell--
+		// remove wall between chosen neighbour and current cell
 		int wallR = (cellPath.top().first + neighbour.first) / 2;
 		int wallC = (cellPath.top().second + neighbour.second) / 2;
 		maze[wallR][wallC] = blank;
 
-		// --add chosen neighbour to stack--
-		cellPath.push(neighbour);
-
-		// --mark cell as visited--
-		maze[cellPath.top().first][cellPath.top().second] = L'V';
+		cellPath.push(neighbour); // add chosen neighbour to stack
+		maze[cellPath.top().first][cellPath.top().second] = L'V'; // mark cell as visited
 		visitedCellCounter++;
 	}
-	// mark last cell as visited (probably not necessary)
-	maze[cellPath.top().first][cellPath.top().second] = L'V';
 
-	// Temporary solution to add walls to grid?
+	// add walls to grid
 	for (int r = 0; r < boardRows; r++) {
 		for (int c = 0; c < boardCols; c++) {
 			if (maze[r][c] == wall)
@@ -377,4 +364,28 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 		}
 	}
 	return;
+}
+
+pair<int, int> path_find(Character (*mon), wchar_t(*g)[boardRows][boardCols]) {
+	vector<vector<pair<int, int>>> paths;	// vector to hold possible paths for monster
+	pair<int, int> startPt = make_pair((*mon).position[0], (*mon).position[1]);		// coord of monster
+
+	// get frontiers next to monster
+	vector<pair<int, int>> frontiers = get_unvisited_neighbour_coords(startPt, g);
+
+	// create start of paths from frontiers
+	for (pair<int, int> frontier : frontiers) {
+		paths.push_back(vector<pair<int, int>> {frontier});	// add path to paths vector
+	}
+
+	while (size(paths) > 1) {	// while the final path hasn't been found
+
+	}
+	// for each unvisited cell:
+	// get new unvisited cell (if there are more than 1, add a new path)
+
+
+
+	// return first position of found path
+	return paths[0][0];
 }
