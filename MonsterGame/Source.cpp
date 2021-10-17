@@ -14,9 +14,9 @@
 
 using namespace std;
 
-const int boardCols = 49;
-const int boardRows = 31;
-const int numberOfTraps = 1;
+const int boardCols = 50;
+const int boardRows = 30;
+const int numberOfTraps = 20;
 
 const int bufferWidth = 120;
 const int bufferHeight = 35;
@@ -41,7 +41,7 @@ int* get_blank_cell(wchar_t(*)[boardRows][boardCols]);
 float get_dist(int, int);
 void draw_grid(wchar_t(*)[boardRows][boardCols], wchar_t[bufferWidth * bufferHeight]);
 void generate_maze(wchar_t(*)[boardRows][boardCols]);
-pair<int, int> path_find(Character(*), wchar_t(*)[boardRows][boardCols]);
+pair<int, int> path_find(Character(*), Character(*), wchar_t(*)[boardRows][boardCols]);
 
 
 int main()
@@ -212,8 +212,8 @@ int main()
 			//}
 		
 			// TODO: hard mode=move 2 squares ; easy mode=move 1
-			pair<int, int> dir = path_find(&monster, &grid);
-			move_item(&monster, dir.first, dir.second, &grid);
+			pair<int, int> monNextPos = path_find(&monster, &player, &grid);
+			move_item(&monster, monNextPos.first - monster.position[0], monNextPos.second - monster.position[1], &grid);
 		}
 		monsterMove = false;
 
@@ -327,11 +327,10 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	stack<pair<int, int>> cellPath;
 	wchar_t maze[boardRows][boardCols];
 	// initialise grid of walls with every other cell not being a wall
-	for (int r = 0; r < boardRows; r++) {
-		for (int c = 0; c < boardCols; c++) {
+	for (int r = 0; r < boardRows; r++)
+		for (int c = 0; c < boardCols; c++)
 			maze[r][c] = r % 2 == 0 && c % 2 == 0 ? blank : wall;
-		}
-	}
+	
 	cellPath.push(make_pair(0, 0));	// starting point
 	maze[cellPath.top().first][cellPath.top().second] = L'V';
 	int visitedCellCounter = 1;
@@ -357,35 +356,70 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	}
 
 	// add walls to grid
-	for (int r = 0; r < boardRows; r++) {
-		for (int c = 0; c < boardCols; c++) {
+	for (int r = 0; r < boardRows; r++)
+		for (int c = 0; c < boardCols; c++)
 			if (maze[r][c] == wall)
 				(*g)[r][c] = wall;
-		}
-	}
 	return;
 }
 
-pair<int, int> path_find(Character (*mon), wchar_t(*g)[boardRows][boardCols]) {
-	vector<vector<pair<int, int>>> paths;	// vector to hold possible paths for monster
-	pair<int, int> startPt = make_pair((*mon).position[0], (*mon).position[1]);		// coord of monster
+vector<pair<int, int>> get_next_frontiers(pair<int, int> cell, wchar_t(*g)[boardRows][boardCols]) {
+	vector<pair<int, int>> nextFrontiers;
+	// top neighbour
+	if (cell.first > 0 && (*g)[cell.first - 1][cell.second] != wall)
+		nextFrontiers.push_back(make_pair(cell.first - 1, cell.second));
+	// bottom neighbour
+	if (cell.first < boardRows - 1 && (*g)[cell.first + 1][cell.second] != wall)
+		nextFrontiers.push_back(make_pair(cell.first + 1, cell.second));
+	// left neighbour
+	if (cell.second > 0 && (*g)[cell.first][cell.second - 1] != wall)
+		nextFrontiers.push_back(make_pair(cell.first, cell.second - 1));
+	// right neighbour
+	if (cell.second < boardCols - 1 && (*g)[cell.first][cell.second + 1] != wall)
+		nextFrontiers.push_back(make_pair(cell.first, cell.second + 1));
+	return nextFrontiers;
+}
 
-	// get frontiers next to monster
-	vector<pair<int, int>> frontiers = get_unvisited_neighbour_coords(startPt, g);
+pair<int, int> path_find(Character (*mon), Character (*player), wchar_t(*g)[boardRows][boardCols]) {
+	pair<int, int> monPos = make_pair((*mon).position[0], (*mon).position[1]);
+	pair<int, int> playerPos = make_pair((*player).position[0], (*player).position[1]);
+	
+	// get starting frontiers
+	vector<pair<int, int>> startingFrontiers = get_next_frontiers(monPos, g);
 
-	// create start of paths from frontiers
-	for (pair<int, int> frontier : frontiers) {
-		paths.push_back(vector<pair<int, int>> {frontier});	// add path to paths vector
+	// if monster can only move in 1 direction, return the only possible move
+	if (size(startingFrontiers) == 1)
+		return startingFrontiers[0];
+
+	int startingFrontierCounter = 0;
+	for (pair<int, int> startingFrontier : startingFrontiers) {
+		if (startingFrontier == playerPos)
+			return startingFrontier;
+		
+		startingFrontierCounter++;
+		vector<pair<pair<int, int>, pair<int, int>>> frontiers;	// holds all frontiers that derive from current starting frontier
+		vector<pair<int, int>> nextFrontiers = get_next_frontiers(startingFrontier, g);
+
+		for (pair<int, int> nextFrontier : nextFrontiers)
+			if (nextFrontier != monPos)
+				frontiers.push_back(make_pair(nextFrontier, startingFrontier));  // add next frontiers to frontiers vector
+
+		for (int i=0; i < size(frontiers); i++) {
+			pair<pair<int, int>, pair<int, int>> frontier = frontiers[i];
+			// if a frontier reaches the player, return the starting frontier
+			if (frontier.first == playerPos) {
+				return startingFrontier;
+			}
+			nextFrontiers = get_next_frontiers(frontier.first, g);
+
+			for (pair<int, int> nextFrontier : nextFrontiers)
+				if (nextFrontier != frontier.second)
+					frontiers.push_back(make_pair(nextFrontier, frontier.first));  // add next frontiers to frontiers vector
+		}
+
+		// if there is only 1 starting frontier left to check, return that one instantly
+		if (startingFrontierCounter == size(startingFrontiers) - 1) {
+			return startingFrontiers[size(startingFrontiers) - 1];
+		}
 	}
-
-	while (size(paths) > 1) {	// while the final path hasn't been found
-
-	}
-	// for each unvisited cell:
-	// get new unvisited cell (if there are more than 1, add a new path)
-
-
-
-	// return first position of found path
-	return paths[0][0];
 }
