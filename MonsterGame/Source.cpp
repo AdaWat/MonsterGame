@@ -42,6 +42,8 @@ float get_dist(int, int);
 void draw_grid(wchar_t(*)[boardRows][boardCols], wchar_t[bufferWidth * bufferHeight]);
 void generate_maze(wchar_t(*)[boardRows][boardCols]);
 pair<int, int> path_find(Character(*), Character(*), wchar_t(*)[boardRows][boardCols]);
+void detect_traps(bool(*), Character(*), wchar_t(*)[boardRows][boardCols], vector<unique_ptr<Item>>(*));
+void detect_gold(int(*), Character(*), Item(*), wchar_t(*)[boardRows][boardCols]);
 
 
 int main()
@@ -51,7 +53,7 @@ int main()
 	wchar_t* screen = new wchar_t[bufferWidth * bufferHeight];
 	for (int i = 0; i < bufferWidth * bufferHeight; i++)
 		screen[i] = L' ';
-	
+
 	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
 	SetConsoleActiveScreenBuffer(console);
 	DWORD bytesWritten = 0;
@@ -103,7 +105,7 @@ int main()
 		// slow down loop
 		this_thread::sleep_for(50ms);
 
-		// ---Keyboard input---
+		// keyboard input
 		if (!keyHeldDown) {
 			if (GetAsyncKeyState(W_KEY) < 0) {
 				move_item(&player, -1, 0, &grid);
@@ -134,33 +136,12 @@ int main()
 		else if (!(GetAsyncKeyState(W_KEY) < 0 || GetAsyncKeyState(A_KEY) < 0 || GetAsyncKeyState(S_KEY) < 0 || GetAsyncKeyState(D_KEY) < 0 || GetAsyncKeyState(Q_KEY) < 0))
 			keyHeldDown = false;
 
-		// TODO: make most of these subroutines
 		// detect collision with monster
 		if (player.position[0] == monster.position[0] && player.position[1] == monster.position[1])
 			gameOver = true;
 
-		// detect collision with traps 
-		if (!monsterAwake)
-			for (unique_ptr<Item>& o : traps)
-				if (player.position[0] == o->position[0] && player.position[1] == o->position[1]) {
-					// TODO: stop displaying the traps (b/c they are about to be cleared)
-					for (int r = 0; r < boardRows; r++)
-						for (int c = 0; c < boardCols; c++)
-							if (grid[r][c] == o->logo)
-								grid[r][c] = blank;
-					// free up memory
-					traps.clear();
-					monsterAwake = true;
-				}
-
-		// detect collision with gold
-		if (player.position[0] == gold.position[0] && player.position[1] == gold.position[1]) {
-			score++;
-			goldPos = get_blank_cell(&grid);
-			gold.position[0] = goldPos[0];
-			gold.position[1] = goldPos[1];
-			grid[gold.position[0]][gold.position[1]] = gold.logo;	// redraw
-		}
+		detect_traps(&monsterAwake, &player, &grid, &traps);	// detect collision with traps
+		detect_gold(&score, &player, &gold, &grid); // detect collision with gold
 
 		// move monster logic
 		if (monsterAwake && monsterMove) {
@@ -328,15 +309,19 @@ vector<pair<int, int>> get_next_frontiers(pair<int, int> cell, wchar_t(*g)[board
 	// top neighbour
 	if (cell.first > 0 && (*g)[cell.first - 1][cell.second] != wall)
 		nextFrontiers.push_back(make_pair(cell.first - 1, cell.second));
+
 	// bottom neighbour
 	if (cell.first < boardRows - 1 && (*g)[cell.first + 1][cell.second] != wall)
 		nextFrontiers.push_back(make_pair(cell.first + 1, cell.second));
+
 	// left neighbour
 	if (cell.second > 0 && (*g)[cell.first][cell.second - 1] != wall)
 		nextFrontiers.push_back(make_pair(cell.first, cell.second - 1));
+
 	// right neighbour
 	if (cell.second < boardCols - 1 && (*g)[cell.first][cell.second + 1] != wall)
 		nextFrontiers.push_back(make_pair(cell.first, cell.second + 1));
+
 	return nextFrontiers;
 }
 
@@ -369,7 +354,7 @@ pair<int, int> path_find(Character(*mon), Character(*player), wchar_t(*g)[boardR
 			// if a frontier reaches the player, return the starting frontier
 			if (frontier.first == playerPos)
 				return startingFrontier;
-			
+
 			nextFrontiers = get_next_frontiers(frontier.first, g);
 
 			for (pair<int, int> nextFrontier : nextFrontiers)
@@ -380,5 +365,31 @@ pair<int, int> path_find(Character(*mon), Character(*player), wchar_t(*g)[boardR
 		// if there is only 1 starting frontier left to check, return that one instantly
 		if (startingFrontierCounter == size(startingFrontiers) - 1)
 			return startingFrontiers[size(startingFrontiers) - 1];
+	}
+}
+
+void detect_traps(bool(*monsterAwake), Character(*player), wchar_t(*g)[boardRows][boardCols], vector<unique_ptr<Item>>(*traps)) {
+	// detect collision with traps 
+	if (!(*monsterAwake))
+		for (unique_ptr<Item>& o : (*traps))
+			if ((*player).position[0] == o->position[0] && (*player).position[1] == o->position[1]) {
+				// TODO: stop displaying the traps (b/c they are about to be cleared)
+				for (int r = 0; r < boardRows; r++)
+					for (int c = 0; c < boardCols; c++)
+						if ((*g)[r][c] == o->logo)
+							(*g)[r][c] = blank;
+				// free up memory
+				(*traps).clear();
+				(*monsterAwake) = true;
+			}
+}
+
+void detect_gold(int(*score), Character(*player), Item(*gold), wchar_t(*g)[boardRows][boardCols]) {
+	if ((*player).position[0] == (*gold).position[0] && (*player).position[1] == (*gold).position[1]) {
+		(*score)++;
+		int* goldPos = get_blank_cell(&(*g));
+		(*gold).position[0] = goldPos[0];
+		(*gold).position[1] = goldPos[1];
+		(*g)[(*gold).position[0]][(*gold).position[1]] = (*gold).logo;	// redraw
 	}
 }
