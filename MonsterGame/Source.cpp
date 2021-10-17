@@ -16,7 +16,7 @@ using namespace std;
 
 const int boardCols = 50;
 const int boardRows = 30;
-const int numberOfTraps = 20;
+const int numberOfTraps = 40;
 
 const int bufferWidth = 120;
 const int bufferHeight = 35;
@@ -49,9 +49,9 @@ int main()
 	srand(time(nullptr));	// set seed for random numbers
 	// Create Screen Buffer
 	wchar_t* screen = new wchar_t[bufferWidth * bufferHeight];
-	for (int i = 0; i < bufferWidth * bufferHeight; i++) {
+	for (int i = 0; i < bufferWidth * bufferHeight; i++)
 		screen[i] = L' ';
-	}
+	
 	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
 	SetConsoleActiveScreenBuffer(console);
 	DWORD bytesWritten = 0;
@@ -60,11 +60,9 @@ int main()
 	// initialise grid with blank values
 	static wchar_t grid[boardRows][boardCols];
 	// TODO: use memset()
-	for (int i = 0; i < boardRows; i++) {
-		for (int j = 0; j < boardCols; j++) {
+	for (int i = 0; i < boardRows; i++)
+		for (int j = 0; j < boardCols; j++)
 			grid[i][j] = blank;
-		}
-	}
 
 	generate_maze(&grid);
 
@@ -132,34 +130,28 @@ int main()
 				keyHeldDown = true;
 			}
 		}
-		else if (!(GetAsyncKeyState(W_KEY) < 0 || GetAsyncKeyState(A_KEY) < 0 || GetAsyncKeyState(S_KEY) < 0 || GetAsyncKeyState(D_KEY) < 0 || GetAsyncKeyState(Q_KEY) < 0)) {
-			// if a button isn't held down, allow the player to move next loop
+		// if a button isn't held down, allow the player to move next loop
+		else if (!(GetAsyncKeyState(W_KEY) < 0 || GetAsyncKeyState(A_KEY) < 0 || GetAsyncKeyState(S_KEY) < 0 || GetAsyncKeyState(D_KEY) < 0 || GetAsyncKeyState(Q_KEY) < 0))
 			keyHeldDown = false;
-		}
+
 		// TODO: make most of these subroutines
 		// detect collision with monster
-		if (player.position[0] == monster.position[0] && player.position[1] == monster.position[1]) {
+		if (player.position[0] == monster.position[0] && player.position[1] == monster.position[1])
 			gameOver = true;
-		}
 
 		// detect collision with traps 
-		if (!monsterAwake) {
-			for (unique_ptr<Item>& o : traps) {
+		if (!monsterAwake)
+			for (unique_ptr<Item>& o : traps)
 				if (player.position[0] == o->position[0] && player.position[1] == o->position[1]) {
 					// TODO: stop displaying the traps (b/c they are about to be cleared)
-					for (int r = 0; r < boardRows; r++) {
-						for (int c = 0; c < boardCols; c++) {
-							if (grid[r][c] == o->logo) {
+					for (int r = 0; r < boardRows; r++)
+						for (int c = 0; c < boardCols; c++)
+							if (grid[r][c] == o->logo)
 								grid[r][c] = blank;
-							}
-						}
-					}
 					// free up memory
 					traps.clear();
 					monsterAwake = true;
 				}
-			}
-		}
 
 		// detect collision with gold
 		if (player.position[0] == gold.position[0] && player.position[1] == gold.position[1]) {
@@ -172,48 +164,16 @@ int main()
 
 		// move monster logic
 		if (monsterAwake && monsterMove) {
-			//if (easyMode) {
-			//	bool moveBias = rand() % 2 - 1;		// true=vertical bias  false=horizontal bias
-			//	int vertOffset = player.position[0] - monster.position[0];
-			//	int horOffset = player.position[1] - monster.position[1];
-
-			//	if ((vertOffset < 0 && moveBias) || (vertOffset < 0 && horOffset == 0)) {
-			//		move_item(&monster, -1, 0, &grid);
-			//	}
-			//	else if ((vertOffset > 0 && moveBias) || (vertOffset > 0 && horOffset == 0)) {
-			//		move_item(&monster, 1, 0, &grid);
-			//	}
-			//	else if ((horOffset < 0 && !moveBias) || (horOffset < 0 && vertOffset == 0)) {
-			//		move_item(&monster, 0, -1, &grid);
-			//	}
-			//	else if ((horOffset > 0 && !moveBias) || (horOffset > 0 && vertOffset == 0)) {
-			//		move_item(&monster, 0, 1, &grid);
-			//	}
-			//}
-			//else {
-			//	float upDist = getMonsterDist(-1, 0);
-			//	float downDist = getMonsterDist(1, 0);
-			//	float leftDist = getMonsterDist(0, -1);
-			//	float rightDist = getMonsterDist(0, 1);
-			//	float minDist = min(upDist, min(downDist, min(leftDist, rightDist)));
-
-			//	if (minDist == upDist) {
-			//		move_item(&monster, -1, 0, &grid);
-			//	}
-			//	else if (minDist == downDist) {
-			//		move_item(&monster, 1, 0, &grid);
-			//	}
-			//	else if (minDist == leftDist) {
-			//		move_item(&monster, 0, -1, &grid);
-			//	}
-			//	else if (minDist == rightDist) {
-			//		move_item(&monster, 0, 1, &grid);
-			//	}
-			//}
-		
-			// TODO: hard mode=move 2 squares ; easy mode=move 1
 			pair<int, int> monNextPos = path_find(&monster, &player, &grid);
-			move_item(&monster, monNextPos.first - monster.position[0], monNextPos.second - monster.position[1], &grid);
+			if (easyMode)
+				move_item(&monster, monNextPos.first - monster.position[0], monNextPos.second - monster.position[1], &grid);
+			else {
+				// move monster 2 squares at a time
+				if (monster.position[0] % 2 == 0 && monster.position[1] % 2 == 0)
+					move_item(&monster, 2 * (monNextPos.first - monster.position[0]), 2 * (monNextPos.second - monster.position[1]), &grid);
+				else
+					move_item(&monster, monNextPos.first - monster.position[0], monNextPos.second - monster.position[1], &grid);
+			}
 		}
 		monsterMove = false;
 
@@ -284,7 +244,7 @@ void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * buffer
 	for (int i = 2; i < boardCols * 2 + 4; i++)
 		s[bufferWidth + i] = wall;
 	// left wall
-	for (int i = 2; i < boardRows+2; i++) {
+	for (int i = 2; i < boardRows + 2; i++) {
 		s[bufferWidth * i + 2] = wall;
 		s[bufferWidth * i + 3] = wall;
 	}
@@ -300,7 +260,7 @@ void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * buffer
 		}
 	// bottom-right corner
 	if (boardRows % 2 == 1 && boardCols % 2 == 1) {
-		s[bufferWidth * (boardRows + 2) + boardCols*2 + 4] = wall;
+		s[bufferWidth * (boardRows + 2) + boardCols * 2 + 4] = wall;
 		s[bufferWidth * (boardRows + 2) + boardCols * 2 + 5] = wall;
 	}
 	return;
@@ -330,7 +290,7 @@ void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
 	for (int r = 0; r < boardRows; r++)
 		for (int c = 0; c < boardCols; c++)
 			maze[r][c] = r % 2 == 0 && c % 2 == 0 ? blank : wall;
-	
+
 	cellPath.push(make_pair(0, 0));	// starting point
 	maze[cellPath.top().first][cellPath.top().second] = L'V';
 	int visitedCellCounter = 1;
@@ -380,10 +340,10 @@ vector<pair<int, int>> get_next_frontiers(pair<int, int> cell, wchar_t(*g)[board
 	return nextFrontiers;
 }
 
-pair<int, int> path_find(Character (*mon), Character (*player), wchar_t(*g)[boardRows][boardCols]) {
+pair<int, int> path_find(Character(*mon), Character(*player), wchar_t(*g)[boardRows][boardCols]) {
 	pair<int, int> monPos = make_pair((*mon).position[0], (*mon).position[1]);
 	pair<int, int> playerPos = make_pair((*player).position[0], (*player).position[1]);
-	
+
 	// get starting frontiers
 	vector<pair<int, int>> startingFrontiers = get_next_frontiers(monPos, g);
 
@@ -395,7 +355,7 @@ pair<int, int> path_find(Character (*mon), Character (*player), wchar_t(*g)[boar
 	for (pair<int, int> startingFrontier : startingFrontiers) {
 		if (startingFrontier == playerPos)
 			return startingFrontier;
-		
+
 		startingFrontierCounter++;
 		vector<pair<pair<int, int>, pair<int, int>>> frontiers;	// holds all frontiers that derive from current starting frontier
 		vector<pair<int, int>> nextFrontiers = get_next_frontiers(startingFrontier, g);
@@ -404,12 +364,12 @@ pair<int, int> path_find(Character (*mon), Character (*player), wchar_t(*g)[boar
 			if (nextFrontier != monPos)
 				frontiers.push_back(make_pair(nextFrontier, startingFrontier));  // add next frontiers to frontiers vector
 
-		for (int i=0; i < size(frontiers); i++) {
+		for (int i = 0; i < size(frontiers); i++) {
 			pair<pair<int, int>, pair<int, int>> frontier = frontiers[i];
 			// if a frontier reaches the player, return the starting frontier
-			if (frontier.first == playerPos) {
+			if (frontier.first == playerPos)
 				return startingFrontier;
-			}
+			
 			nextFrontiers = get_next_frontiers(frontier.first, g);
 
 			for (pair<int, int> nextFrontier : nextFrontiers)
@@ -418,8 +378,7 @@ pair<int, int> path_find(Character (*mon), Character (*player), wchar_t(*g)[boar
 		}
 
 		// if there is only 1 starting frontier left to check, return that one instantly
-		if (startingFrontierCounter == size(startingFrontiers) - 1) {
+		if (startingFrontierCounter == size(startingFrontiers) - 1)
 			return startingFrontiers[size(startingFrontiers) - 1];
-		}
 	}
 }
