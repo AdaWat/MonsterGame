@@ -14,8 +14,8 @@
 
 using namespace std;
 
-const int boardCols = 50;
-const int boardRows = 30;
+const int boardCols = 46;
+const int boardRows = 28;
 const int numberOfTraps = 40;
 
 const int bufferWidth = 120;
@@ -39,7 +39,7 @@ void add_item(Character, wchar_t(*)[boardRows][boardCols]);
 void move_item(Character(*), int, int, wchar_t(*)[boardRows][boardCols]);
 int* get_blank_cell(wchar_t(*)[boardRows][boardCols]);
 float get_dist(int, int);
-void draw_grid(wchar_t(*)[boardRows][boardCols], wchar_t[bufferWidth * bufferHeight]);
+void draw_grid(wchar_t(*)[boardRows][boardCols], wchar_t[bufferWidth * bufferHeight], Character(*));
 void generate_maze(wchar_t(*)[boardRows][boardCols]);
 pair<int, int> path_find(Character(*), Character(*), wchar_t(*)[boardRows][boardCols]);
 void detect_traps(bool(*), Character(*), wchar_t(*)[boardRows][boardCols], vector<unique_ptr<Item>>(*));
@@ -149,9 +149,10 @@ int main()
 			if (easyMode)
 				move_item(&monster, monNextPos.first - monster.position[0], monNextPos.second - monster.position[1], &grid);
 			else {
-				// move monster 2 squares at a time
-				if (monster.position[0] % 2 == 0 && monster.position[1] % 2 == 0)
-					move_item(&monster, 2 * (monNextPos.first - monster.position[0]), 2 * (monNextPos.second - monster.position[1]), &grid);
+				if (monNextPos.first == player.position[0] && monNextPos.second == player.position[1]) 
+					move_item(&monster, monNextPos.first - monster.position[0], monNextPos.second - monster.position[1], &grid);
+				else if (monster.position[0] % 2 == 0 && monster.position[1] % 2 == 0)
+					move_item(&monster, 2 * (monNextPos.first - monster.position[0]), 2 * (monNextPos.second - monster.position[1]), &grid); // move monster 2 squares at a time
 				else
 					move_item(&monster, monNextPos.first - monster.position[0], monNextPos.second - monster.position[1], &grid);
 			}
@@ -162,7 +163,7 @@ int main()
 		// draw gold (in case the monster walked over it in the last loop)
 		grid[gold.position[0]][gold.position[1]] = !(monster.position[0] == gold.position[0] && monster.position[1] == gold.position[1]) ? gold.logo : monster.logo;
 
-		draw_grid(&grid, screen);
+		draw_grid(&grid, screen, &player);
 
 		// Display score
 		std::swprintf(&screen[2 * bufferWidth + boardCols * 2 + 10], 12, L"Score: %d", score);
@@ -212,15 +213,24 @@ float get_dist(int x, int y) {
 	return sqrt(x * x + y * y);
 }
 
-void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * bufferHeight]) {
+void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * bufferHeight], Character (*player)) {
 	// populate the screen char array with the grid
 	for (int r = 0; r < boardRows; r++)
 		for (int c = 0; c < boardCols; c++)
-			s[(r + 2) * bufferWidth + c * 2 + 4] = (*g)[r][c];
+			if (get_dist((*player).position[0] - r, (*player).position[1] - c) < 8 || c == boardCols - 1 || r == boardRows - 1)
+				s[(r + 2) * bufferWidth + c * 2 + 4] = (*g)[r][c];
+			else
+				s[(r + 2) * bufferWidth + c * 2 + 4] = ' ';
+
+	// display walls as squares
 	for (int r = 0; r < boardRows; r++)
 		for (int c = 0; c < boardCols; c++)
 			if ((*g)[r][c] == wall)
-				s[(r + 2) * bufferWidth + c * 2 + 5] = (*g)[r][c];	// display walls as squares
+				if (get_dist((*player).position[0] - r, (*player).position[1] - c) < 8 || c == boardCols - 1 || r == boardRows - 1)
+					s[(r + 2) * bufferWidth + c * 2 + 5] = (*g)[r][c];
+				else
+					s[(r + 2) * bufferWidth + c * 2 + 5] = ' ';
+
 	// top wall
 	for (int i = 2; i < boardCols * 2 + 4; i++)
 		s[bufferWidth + i] = wall;
