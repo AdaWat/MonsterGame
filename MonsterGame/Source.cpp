@@ -14,12 +14,12 @@
 
 using namespace std;
 
-const int boardCols = 46;
-const int boardRows = 28;
-const int numberOfTraps = 40;
+const int boardCols = 70;
+const int boardRows = 45;
+const int numberOfTraps = 5;
 
-const int bufferWidth = 120;
-const int bufferHeight = 35;
+const int bufferWidth = 165;
+const int bufferHeight = 50;
 
 const wchar_t blank = L' ';
 const wchar_t wall = L'█';
@@ -39,7 +39,7 @@ void add_item(Character, wchar_t(*)[boardRows][boardCols]);
 void move_item(Character(*), int, int, wchar_t(*)[boardRows][boardCols]);
 int* get_blank_cell(wchar_t(*)[boardRows][boardCols]);
 float get_dist(int, int);
-void draw_grid(wchar_t(*)[boardRows][boardCols], wchar_t[bufferWidth * bufferHeight], Character(*));
+void draw_grid(wchar_t(*)[boardRows][boardCols], wchar_t[bufferWidth * bufferHeight], Character(*), bool);
 void generate_maze(wchar_t(*)[boardRows][boardCols]);
 pair<int, int> path_find(Character(*), Character(*), wchar_t(*)[boardRows][boardCols]);
 void detect_traps(bool(*), Character(*), wchar_t(*)[boardRows][boardCols], vector<unique_ptr<Item>>(*));
@@ -57,7 +57,6 @@ int main()
 	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
 	SetConsoleActiveScreenBuffer(console);
 	DWORD bytesWritten = 0;
-
 
 	// initialise grid with blank values
 	static wchar_t grid[boardRows][boardCols];
@@ -163,7 +162,7 @@ int main()
 		// draw gold (in case the monster walked over it in the last loop)
 		grid[gold.position[0]][gold.position[1]] = !(monster.position[0] == gold.position[0] && monster.position[1] == gold.position[1]) ? gold.logo : monster.logo;
 
-		draw_grid(&grid, screen, &player);
+		draw_grid(&grid, screen, &player, easyMode);
 
 		// Display score
 		std::swprintf(&screen[2 * bufferWidth + boardCols * 2 + 10], 12, L"Score: %d", score);
@@ -213,23 +212,30 @@ float get_dist(int x, int y) {
 	return sqrt(x * x + y * y);
 }
 
-void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * bufferHeight], Character (*player)) {
+void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * bufferHeight], Character (*player), bool easyMode) {
+	int radius = 6;
 	// populate the screen char array with the grid
 	for (int r = 0; r < boardRows; r++)
 		for (int c = 0; c < boardCols; c++)
-			if (get_dist((*player).position[0] - r, (*player).position[1] - c) < 8 || c == boardCols - 1 || r == boardRows - 1)
+			if (!easyMode && (get_dist((*player).position[0] - r, (*player).position[1] - c) < radius || 
+				(c == boardCols - 1 && boardCols % 2 == 0) || (r == boardRows - 1 && boardRows % 2 == 0)))
 				s[(r + 2) * bufferWidth + c * 2 + 4] = (*g)[r][c];
-			else
+			else if (!easyMode)
 				s[(r + 2) * bufferWidth + c * 2 + 4] = ' ';
+			else
+				s[(r + 2) * bufferWidth + c * 2 + 4] = (*g)[r][c];
 
 	// display walls as squares
 	for (int r = 0; r < boardRows; r++)
 		for (int c = 0; c < boardCols; c++)
 			if ((*g)[r][c] == wall)
-				if (get_dist((*player).position[0] - r, (*player).position[1] - c) < 8 || c == boardCols - 1 || r == boardRows - 1)
+				if (!easyMode && (get_dist((*player).position[0] - r, (*player).position[1] - c) < radius || 
+					(c == boardCols - 1 && boardCols % 2 == 0) || (r == boardRows - 1 && boardRows % 2 == 0)))
 					s[(r + 2) * bufferWidth + c * 2 + 5] = (*g)[r][c];
-				else
+				else if (!easyMode)
 					s[(r + 2) * bufferWidth + c * 2 + 5] = ' ';
+				else
+					s[(r + 2) * bufferWidth + c * 2 + 5] = (*g)[r][c];
 
 	// top wall
 	for (int i = 2; i < boardCols * 2 + 4; i++)
