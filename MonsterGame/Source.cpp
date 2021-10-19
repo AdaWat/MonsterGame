@@ -148,7 +148,7 @@ int main()
 			if (easyMode)
 				move_item(&monster, monNextPos.first - monster.position[0], monNextPos.second - monster.position[1], &grid);
 			else {
-				if (monNextPos.first == player.position[0] && monNextPos.second == player.position[1]) 
+				if (monNextPos.first == player.position[0] && monNextPos.second == player.position[1])
 					move_item(&monster, monNextPos.first - monster.position[0], monNextPos.second - monster.position[1], &grid);
 				else if (monster.position[0] % 2 == 0 && monster.position[1] % 2 == 0)
 					move_item(&monster, 2 * (monNextPos.first - monster.position[0]), 2 * (monNextPos.second - monster.position[1]), &grid); // move monster 2 squares at a time
@@ -188,7 +188,7 @@ void add_item(Character c, wchar_t(*g)[boardRows][boardCols]) {
 	return;
 }
 
-void move_item(Character* c, int x, int y, wchar_t(*g)[boardRows][boardCols]) {
+void move_item(Character(*c), int x, int y, wchar_t(*g)[boardRows][boardCols]) {
 	// if valid move
 	if (0 <= ((*c).position[0] + x) && ((*c).position[0] + x) <= boardRows - 1 && 0 <= ((*c).position[1] + y) && ((*c).position[1] + y) <= boardCols - 1
 		&& (*g)[(*c).position[0] + x][(*c).position[1] + y] != wall) {
@@ -212,12 +212,12 @@ float get_dist(int x, int y) {
 	return sqrt(x * x + y * y);
 }
 
-void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * bufferHeight], Character (*player), bool easyMode) {
+void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * bufferHeight], Character(*player), bool easyMode) {
 	int radius = 6;
 	// populate the screen char array with the grid
 	for (int r = 0; r < boardRows; r++)
 		for (int c = 0; c < boardCols; c++)
-			if (!easyMode && (get_dist((*player).position[0] - r, (*player).position[1] - c) < radius || 
+			if (!easyMode && (get_dist((*player).position[0] - r, (*player).position[1] - c) < radius ||
 				(c == boardCols - 1 && boardCols % 2 == 0) || (r == boardRows - 1 && boardRows % 2 == 0)))
 				s[(r + 2) * bufferWidth + c * 2 + 4] = (*g)[r][c];
 			else if (!easyMode)
@@ -229,7 +229,7 @@ void draw_grid(wchar_t(*g)[boardRows][boardCols], wchar_t s[bufferWidth * buffer
 	for (int r = 0; r < boardRows; r++)
 		for (int c = 0; c < boardCols; c++)
 			if ((*g)[r][c] == wall)
-				if (!easyMode && (get_dist((*player).position[0] - r, (*player).position[1] - c) < radius || 
+				if (!easyMode && (get_dist((*player).position[0] - r, (*player).position[1] - c) < radius ||
 					(c == boardCols - 1 && boardCols % 2 == 0) || (r == boardRows - 1 && boardRows % 2 == 0)))
 					s[(r + 2) * bufferWidth + c * 2 + 5] = (*g)[r][c];
 				else if (!easyMode)
