@@ -281,6 +281,7 @@ vector<pair<int, int>> get_unvisited_neighbour_coords(pair<int, int> cell, wchar
 }
 
 void generate_maze(wchar_t(*g)[boardRows][boardCols]) {
+	// ---recursive backtracking---
 	stack<pair<int, int>> cellPath;
 	wchar_t maze[boardRows][boardCols];
 	// initialise grid of walls with every other cell not being a wall
